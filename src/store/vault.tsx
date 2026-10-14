@@ -5,7 +5,7 @@ import type { ProviderId } from '../ai/types'
 
 const VAULT_KEY = 'gm.vault'
 
-export type Secrets = Partial<Record<ProviderId, string>> & { githubToken?: string }
+export type Secrets = Partial<Record<ProviderId, string>> & { githubToken?: string; openalexKey?: string }
 
 type VaultStatus = 'empty' | 'locked' | 'unlocked'
 

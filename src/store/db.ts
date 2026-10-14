@@ -27,6 +27,8 @@ export const db = new Dexie('geomine-studio') as Dexie & {
   conversations: EntityTable<Conversation, 'id'>
   messages: EntityTable<StoredMessage, 'id'>
   manuscripts: EntityTable<Manuscript, 'id'>
+  papers: EntityTable<Paper, 'id'>
+  chunks: EntityTable<Chunk, 'id'>
 }
 
 db.version(1).stores({
@@ -36,6 +38,11 @@ db.version(1).stores({
 
 db.version(2).stores({
   manuscripts: 'id, updatedAt',
+})
+
+db.version(3).stores({
+  papers: 'id, doi, addedAt',
+  chunks: '++id, paperId',
 })
 
 export type SectionRole = 'highlights' | 'abstract' | 'keywords' | 'body' | 'back'
@@ -68,4 +75,43 @@ export interface Manuscript {
   bibtex: string
   createdAt: number
   updatedAt: number
+}
+
+/** A work in the literature library, from OpenAlex, a DOI lookup, or entered by hand. */
+export interface Paper {
+  id: string
+  /** Bare DOI (10.xxxx/…), lowercase. */
+  doi?: string
+  openalexId?: string
+  title: string
+  /** Display names in "Given Family" order. */
+  authors: string[]
+  year?: number
+  venue?: string
+  volume?: string
+  issue?: string
+  pages?: string
+  abstract?: string
+  citedBy?: number
+  url?: string
+  oaUrl?: string
+  /** Citation key used in manuscripts. */
+  bibKey: string
+  tags: string[]
+  notes: string
+  /** Literature-matrix cells, keyed by column id. */
+  matrix?: Record<string, string>
+  matrixSource?: 'abstract' | 'fulltext'
+  pdfName?: string
+  pdfPages?: number
+  addedAt: number
+  updatedAt: number
+}
+
+/** A passage of a paper's PDF text, for retrieval. */
+export interface Chunk {
+  id?: number
+  paperId: string
+  page: number
+  text: string
 }

@@ -68,6 +68,26 @@ export default function SettingsPage() {
               </label>
             )
           })}
+          <label className="block border-t border-stone-200 pt-3 dark:border-stone-800">
+            <Label
+              hint={
+                <>
+                  optional — raises the free daily search quota ·{' '}
+                  <a href="https://openalex.org/settings/api" target="_blank" rel="noreferrer" className="underline">
+                    get a key
+                  </a>
+                </>
+              }
+            >
+              OpenAlex (literature search)
+            </Label>
+            <Input
+              type="password"
+              autoComplete="off"
+              value={draft.openalexKey ?? ''}
+              onChange={(e) => setDraft({ ...draft, openalexKey: e.target.value.trim() })}
+            />
+          </label>
           <div className="flex items-center gap-3">
             <Button onClick={saveKeys}>Save keys</Button>
             {saved && <span className="text-sm text-green-600">Saved</span>}

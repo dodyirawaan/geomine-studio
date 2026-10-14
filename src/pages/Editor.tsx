@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { JOURNALS, type JournalId } from '../ai/prompts'
 import { AssistPanel } from '../components/AssistPanel'
+import { LibraryImport, VerifyReferences } from '../components/ReferenceTools'
 import { Markdown } from '../components/Markdown'
 import { Button, Input, Label, Select } from '../components/ui'
 import { downloadBlob, downloadText, slug } from '../lib/download'
@@ -509,6 +510,8 @@ function ReferencesPane({ doc, entries, onChange }: { doc: Manuscript; entries: 
         Paste BibTeX exported from Zotero, Mendeley, Google Scholar or a DOI lookup. Cite in any section with <code>[@key]</code> or{' '}
         <code>[@key1; @key2]</code>. Only cited entries appear in the exported reference list.
       </p>
+      <LibraryImport bibtex={doc.bibtex} entries={entries} missing={missing} onChange={onChange} />
+      <VerifyReferences bibtex={doc.bibtex} entries={entries} onChange={onChange} />
       <textarea
         value={doc.bibtex}
         onChange={(e) => onChange(e.target.value)}

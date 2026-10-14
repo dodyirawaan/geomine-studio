@@ -2,6 +2,7 @@ import { NavLink, Route, Routes } from 'react-router-dom'
 import ChatPage from './pages/Chat'
 import Dashboard from './pages/Dashboard'
 import EditorPage from './pages/Editor'
+import LiteraturePage from './pages/literature/Literature'
 import ManuscriptsPage from './pages/Manuscripts'
 import SettingsPage from './pages/Settings'
 import { useVault } from './store/vault'
@@ -9,6 +10,7 @@ import { useVault } from './store/vault'
 const NAV = [
   { to: '/', label: 'Home', end: true },
   { to: '/manuscripts', label: 'Manuscripts', end: false },
+  { to: '/literature', label: 'Literature', end: false },
   { to: '/chat', label: 'Assistant', end: false },
   { to: '/settings', label: 'Settings', end: false },
 ]
@@ -42,6 +44,7 @@ export default function App() {
           <Route path="/" element={<Page><Dashboard /></Page>} />
           <Route path="/manuscripts" element={<Page><ManuscriptsPage /></Page>} />
           <Route path="/manuscripts/:id" element={<EditorPage />} />
+          <Route path="/literature" element={<Page><LiteraturePage /></Page>} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/chat/:convId" element={<ChatPage />} />
           <Route path="/settings" element={<Page><SettingsPage /></Page>} />

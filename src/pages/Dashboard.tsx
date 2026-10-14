@@ -7,7 +7,7 @@ import { useVault } from '../store/vault'
 const ROADMAP = [
   { phase: 1, title: 'Foundation', items: 'Encrypted key vault, multi-provider streaming chat, mining-oriented agents', done: true },
   { phase: 2, title: 'Manuscript editor & templates', items: 'IMRaD editor with AI co-author per section, Q1 journal templates, DOCX + LaTeX + BibTeX export', done: true },
-  { phase: 3, title: 'Literature', items: 'OpenAlex/Crossref search, DOI verification, literature matrix, PDF RAG', done: false },
+  { phase: 3, title: 'Literature', items: 'OpenAlex search, local library with PDFs, Crossref DOI verification, AI literature matrix, ask-your-library (BM25 RAG)', done: true },
   { phase: 4, title: 'Methods library', items: 'RMR/Q/GSI/Hoek–Brown, rockburst criteria, support design calculators → Methods text', done: false },
   { phase: 5, title: 'Automation pipeline', items: 'Idea → draft → Reviewer 2 → revision, consistency checker, Q1 checklist', done: false },
   { phase: 6, title: 'Sync & polish', items: 'Private GitHub sync, version history, cost tracking, offline PWA', done: false },

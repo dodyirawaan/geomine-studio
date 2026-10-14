@@ -23,14 +23,17 @@ export function Button({
 }
 
 const field =
-  'w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-stone-700 dark:bg-stone-900'
+  'rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-stone-700 dark:bg-stone-900'
+
+/** Fields are full width unless the caller sets a width of its own. */
+const fieldClass = (className?: string) => cx(field, !/(^|\s)(w-|basis-|flex-1)/.test(className ?? '') && 'w-full', className)
 
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={cx(field, className)} />
+  return <input {...props} className={fieldClass(className)} />
 }
 
 export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={cx(field, className)} />
+  return <select {...props} className={fieldClass(className)} />
 }
 
 export function Card({ title, children, className }: { title?: ReactNode; children: ReactNode; className?: string }) {

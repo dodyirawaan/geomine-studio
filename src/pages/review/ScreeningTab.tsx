@@ -88,8 +88,9 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
     return () => window.removeEventListener('keydown', onKey)
   })
 
-  async function suggest() {
-    const todo = p.records.filter((r) => !r.ai && (p.dual?.enabled || !r.ta))
+  /** AI suggestions for records without one; `again` also redoes the suggestions of records still undecided (e.g. with another model). */
+  async function suggest(again = false) {
+    const todo = p.records.filter((r) => (again ? !mine(r) : !r.ai && (p.dual?.enabled || !r.ta)))
     if (!todo.length) return
     setBusy(true)
     setError('')
@@ -135,6 +136,7 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
     aiInc: p.records.filter((r) => !mine(r) && r.ai?.decision === 'include').length,
     aiExc: p.records.filter((r) => !mine(r) && r.ai?.decision === 'exclude').length,
     noAi: p.records.filter((r) => !r.ai && (dual || !r.ta)).length,
+    undecided: p.records.filter((r) => !mine(r)).length,
   }
 
   return (
@@ -151,9 +153,21 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
               Stop
             </Button>
           ) : (
-            <Button variant="ghost" disabled={!llm.ready || !counts.noAi || !p.protocol.inclusion.length} onClick={suggest}>
-              <Bot className="h-4 w-4" /> AI suggestions for {counts.noAi} record{counts.noAi === 1 ? '' : 's'}
-            </Button>
+            <>
+              <Button variant="ghost" disabled={!llm.ready || !counts.noAi || !p.protocol.inclusion.length} onClick={() => suggest()}>
+                <Bot className="h-4 w-4" /> AI suggestions for {counts.noAi} record{counts.noAi === 1 ? '' : 's'}
+              </Button>
+              {!counts.noAi && counts.undecided > 0 && (
+                <Button
+                  variant="subtle"
+                  className="text-xs"
+                  disabled={!llm.ready || !p.protocol.inclusion.length}
+                  onClick={() => window.confirm(`Ask the AI again for the ${counts.undecided} undecided records? Their current suggestions are replaced.`) && suggest(true)}
+                >
+                  Ask again for {counts.undecided} undecided
+                </Button>
+              )}
+            </>
           )}
           {!dual && counts.aiInc > 0 && (
             <Button variant="subtle" className="text-xs" onClick={() => acceptAi('include')}>
@@ -165,7 +179,15 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
               Accept {counts.aiExc} AI excludes
             </Button>
           )}
-          <span className="text-xs text-stone-500">{progress || llm.missing}</span>
+          <span className="text-xs text-stone-500">
+            {busy
+              ? progress
+              : !p.protocol.inclusion.length
+                ? 'Add inclusion criteria in the Protocol step to get AI suggestions.'
+                : llm.missing ||
+                  progress ||
+                  (!counts.noAi ? (counts.undecided ? 'Every undecided record already has an AI suggestion — filter “AI says include/exclude” below.' : 'All records are decided.') : '')}
+          </span>
         </div>
         {error && <p className="mt-2 whitespace-pre-line text-sm text-red-700">{error}</p>}
         {dual && <p className="mt-2 text-xs text-stone-500">With two reviewers, AI suggestions stay hidden on a record until the active reviewer has decided it, so they cannot influence the independent decision.</p>}

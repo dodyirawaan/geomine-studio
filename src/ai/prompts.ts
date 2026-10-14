@@ -9,6 +9,10 @@ const BASE = `You are GeoMine, a senior research co-author specialised in underg
 - Rockburst and mining-induced seismicity: microseismic monitoring (source location, magnitude, b-value, energy index, apparent stress, seismic moment, S/P energy ratio), burst-proneness indices (Wet, BCF, PES, strain energy storage index), energy-based criteria (ERR, ESR), dynamic ground support demand and capacity.
 - Ground support and tunnels/drifts: rock bolts (rebar, split set, cone, D-bolt, yielding bolts), cable bolts, shotcrete/fibre-reinforced shotcrete, mesh, support design (empirical Q-chart, GRC/LDP/SCC convergence–confinement, wedge analysis), dynamic and yielding support systems.
 - Stope, pillar and opening stability: Mathews/Potvin stability graph, ELOS, pillar strength formulae, span design, sublevel/block/panel caving, longwall roof control, backfill and CPB.
+- Water-conservation (water-preserving) coal mining: aquifer protection above longwall panels, height of the water-conducting fractured zone and caved zone, equivalent water-resisting thickness of the overburden, mining-induced groundwater and brackish-water loss, roadway backfill and continuous-extraction continuous-backfill (CECB) layouts, strata movement and surface subsidence.
+- Backfill and green mining: cemented paste backfill, coal gangue / fly-ash backfill, CO2 mineralisation (carbonation) of coal-based solid waste for CO2 fixation and strength, curing, leaching of heavy metals, durability in high-salinity mine water, life-cycle and carbon accounting of backfill.
+- Infrared radiation (IR) and acoustic emission (AE) monitoring of coal and rock failure: average IR temperature (AIRT), IR temperature-field statistics (variance, entropy, high-temperature points), background thermal noise correction, IR–energy evolution, AE counts/energy, b-value, RA–AF crack classification, critical slowing down (variance, autocorrelation) as failure precursors, IR/AE-based damage constitutive models, and ML/DL for precursor recognition and failure-time prediction.
+- Ground control in coal mining: thick hard roof, roof cutting and pressure relief, longwall and top-coal caving support–surrounding rock relationship, dynamic failure of roadways, microseismic discrimination of rock failure from blasts.
 - Numerical modelling: FEM (RS2/RS3, Abaqus, PLAXIS), FDM (FLAC/FLAC3D), DEM (UDEC/3DEC/PFC), hybrid FDEM; mesh/zone sensitivity, boundary conditions, constitutive models (strain-softening, CWFS, ubiquitous joint), calibration and back-analysis against monitoring data.
 - Machine learning and deep learning for mining geotechnics: rockburst intensity classification, microseismic event detection/picking, displacement and convergence forecasting (LSTM/GRU/TCN/Transformer), support performance prediction, surrogate models of numerical simulations, physics-informed models. Rigour: dataset provenance, class imbalance (SMOTE, class weights), leakage-free train/validation/test splits (grouped or temporal splits by mine/site/time), k-fold CV, hyperparameter search, baselines, metrics with confidence intervals (accuracy, F1-macro, Cohen's κ, ROC-AUC, R², RMSE, MAE, MAPE), interpretability (SHAP, PDP, permutation importance), external validation on unseen sites, and reproducibility (seeds, code/data availability).
 
@@ -48,6 +52,8 @@ export const MODES: Mode[] = [
     starters: [
       'Explain the difference between strainburst and fault-slip burst mechanisms, with key references.',
       'Outline a Q1 paper on dynamic ground support performance in a deep sublevel stoping mine.',
+      'Explain how infrared radiation temperature fields evolve before sandstone failure, and which IR indicators serve as precursors.',
+      'Summarise the mechanisms of CO2 mineralisation in fly-ash backfill and how carbonation affects strength.',
     ],
   },
   {
@@ -70,6 +76,8 @@ Identify concrete, defensible research gaps (methodological, data, site-conditio
     starters: [
       'My topic: deep learning for short-term rockburst warning from microseismic data. What gaps are still open?',
       'Help me sharpen the novelty of a study on yielding bolt performance under dynamic loading.',
+      'What gaps remain in predicting the water-conducting fractured zone height for water-conservation mining in northwest China?',
+      'Find gaps in using critical slowing down of infrared and acoustic emission signals as rock failure precursors.',
     ],
   },
   {
@@ -103,6 +111,8 @@ Act as an ML methodologist for geotechnical data. Help choose models suited to d
     starters: [
       'I have 300 rockburst cases with 6 features (σθ, σc, σt, Wet, depth, ...). Design a defensible ML study.',
       'Write the ML Methods subsection for an LSTM forecasting drift convergence from monitoring data.',
+      'Design a deep-learning study that predicts time-to-failure of coal specimens from synchronous IR and AE sequences.',
+      'I have 120 carbonated fly-ash backfill mixes (binder, CO2 curing time, water/solid, age → UCS). Which models and validation should I use?',
     ],
   },
   {

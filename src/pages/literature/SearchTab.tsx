@@ -12,6 +12,12 @@ const PRESETS = [
   'strainburst numerical modelling',
   'tunnel convergence deep learning',
   'Hoek-Brown GSI rock mass',
+  'infrared radiation rock failure precursor',
+  'acoustic emission infrared coal damage',
+  'water-conserving mining aquifer protection',
+  'water-conducting fractured zone height prediction',
+  'CO2 mineralization fly ash backfill',
+  'critical slowing down rock failure',
 ]
 
 export default function SearchTab({ papers }: { papers: Paper[] }) {

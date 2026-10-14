@@ -53,7 +53,7 @@ export function parseProtocol(text: string, base: Protocol): Protocol {
 
 export function screeningRequest(p: Protocol, batch: ReviewRecord[]): string {
   const items = batch
-    .map((r) => `### ${r.id}\nTitle: ${r.meta.title}\nYear: ${r.meta.year ?? '?'} · ${r.meta.venue ?? ''}\nAbstract: ${(r.meta.abstract ?? '(no abstract)').slice(0, 1400)}`)
+    .map((r) => `### ${r.id}\nTitle: ${r.meta.title}\nYear: ${r.meta.year ?? '?'} · ${r.meta.venue ?? ''}\nAbstract: ${(r.meta.abstract ?? '(no abstract)').slice(0, 1100)}`)
     .join('\n\n')
   return `Screen these records for a literature review using only the title and abstract.
 

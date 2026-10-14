@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { PROVIDERS } from './providers'
+import { withRateLimitRetry } from './rateLimit'
 import type { ChatResult } from './types'
 import { useSettings } from '../store/settings'
 import { useVault } from '../store/vault'
@@ -14,16 +15,27 @@ export function useLLM() {
   const ready = status === 'unlocked' && !!apiKey && !!model
 
   const run = useCallback(
-    async (system: string, user: string, opts: { onText?: (acc: string) => void; signal?: AbortSignal; feature?: string } = {}): Promise<{ text: string } & ChatResult> => {
+    async (
+      system: string,
+      user: string,
+      opts: { onText?: (acc: string) => void; signal?: AbortSignal; feature?: string; light?: boolean; onWait?: (secondsLeft: number) => void } = {},
+    ): Promise<{ text: string } & ChatResult> => {
       if (!apiKey || !model) throw new Error('Unlock the vault and choose a provider and model first.')
       let text = ''
-      const result = await PROVIDERS[provider].streamChat(
-        apiKey,
-        { model, system, messages: [{ role: 'user', content: user }], maxTokens: settings.maxTokens, effort: settings.anthropicEffort, signal: opts.signal, feature: opts.feature },
-        (d) => {
-          text += d
-          opts.onText?.(text)
+      // Per-minute rate limits (common on free tiers) are waited out and retried; a used-up daily quota stops with an explanation.
+      const result = await withRateLimitRetry(
+        () => {
+          text = ''
+          return PROVIDERS[provider].streamChat(
+            apiKey,
+            { model, system, messages: [{ role: 'user', content: user }], maxTokens: settings.maxTokens, effort: opts.light ? 'low' : settings.anthropicEffort, signal: opts.signal, feature: opts.feature, light: opts.light },
+            (d) => {
+              text += d
+              opts.onText?.(text)
+            },
+          )
         },
+        { signal: opts.signal, onWait: opts.onWait },
       )
       return { text, ...result }
     },

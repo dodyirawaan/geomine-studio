@@ -27,6 +27,8 @@ export interface ChatRequest {
   signal?: AbortSignal
   /** Which part of the app made the request, for the usage log. */
   feature?: string
+  /** Short classification-style task (e.g. screening): ask the model to think briefly to save tokens and quota. */
+  light?: boolean
 }
 
 export interface ChatResult {

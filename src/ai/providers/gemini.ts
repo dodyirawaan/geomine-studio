@@ -3,6 +3,14 @@ import type { ChatResult, Provider } from '../types'
 
 const BASE = 'https://generativelanguage.googleapis.com/v1beta'
 
+/** Brief thinking for light tasks: thinking tokens count against the free quota. Unknown models keep their default. */
+function lightThinking(model: string): Record<string, unknown> | undefined {
+  if (/^gemini-[3-9]/.test(model)) return { thinkingLevel: 'low' }
+  if (/^gemini-2\.5-pro/.test(model)) return { thinkingBudget: 128 }
+  if (/^gemini-2\.5-flash/.test(model)) return { thinkingBudget: 0 }
+  return undefined
+}
+
 interface RawGeminiModel {
   name: string
   displayName?: string
@@ -37,7 +45,10 @@ export const gemini: Provider = {
           role: m.role === 'assistant' ? 'model' : 'user',
           parts: [{ text: m.content }],
         })),
-        generationConfig: { maxOutputTokens: req.maxTokens },
+        generationConfig: {
+          maxOutputTokens: req.maxTokens,
+          ...(req.light && lightThinking(req.model) ? { thinkingConfig: lightThinking(req.model) } : {}),
+        },
       }),
     })
     if (!res.ok) throw await httpError(res, 'Gemini')

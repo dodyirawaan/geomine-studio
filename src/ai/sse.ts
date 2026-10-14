@@ -1,3 +1,5 @@
+import { rateLimitFrom } from './rateLimit'
+
 /** Yields the `data:` payload of each server-sent event in a fetch response body. */
 export async function* sseData(res: Response): AsyncGenerator<string> {
   if (!res.body) throw new Error('Response has no body')
@@ -26,6 +28,7 @@ export async function httpError(res: Response, provider: string): Promise<Error>
   let detail = ''
   try {
     const body = await res.json()
+    if (res.status === 429) return rateLimitFrom(provider, body, res.headers)
     detail = body?.error?.message ?? body?.message ?? JSON.stringify(body)
   } catch {
     detail = res.statusText

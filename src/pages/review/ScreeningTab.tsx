@@ -27,6 +27,7 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
   const [progress, setProgress] = useState('')
   const [error, setError] = useState('')
   const stop = useRef(false)
+  const ctrl = useRef<AbortController | null>(null)
   const codes = exclusionCodes(p)
 
   const shown = useMemo(() => {
@@ -79,18 +80,27 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
     setBusy(true)
     setError('')
     stop.current = false
-    const size = 12
+    ctrl.current = new AbortController()
+    // Larger batches mean fewer requests, which matters on free tiers that count requests per minute and per day.
+    const size = 20
     try {
       for (let i = 0; i < todo.length && !stop.current; i += size) {
         const batch = todo.slice(i, i + size)
-        setProgress(`AI screening ${Math.min(i + size, todo.length)} of ${todo.length}…`)
-        const { text } = await llm.run(buildSystemPrompt('literature', p.journal as JournalId), screeningRequest(p.protocol, batch), { feature: 'Review: screening' })
+        const label = `AI screening ${Math.min(i + size, todo.length)} of ${todo.length}…`
+        setProgress(label)
+        const { text } = await llm.run(buildSystemPrompt('literature', p.journal as JournalId), screeningRequest(p.protocol, batch), {
+          feature: 'Review: screening',
+          light: true,
+          signal: ctrl.current.signal,
+          onWait: (s) => setProgress(s ? `Provider rate limit — waiting ${s} s, then continuing (${label.replace('…', '')})` : label),
+        })
         const out = parseScreening(text)
         await save((cur) => ({ records: cur.records.map((r) => (out[r.id] ? { ...r, ai: out[r.id] } : r)) }))
       }
       setProgress(stop.current ? 'Stopped.' : 'Suggestions ready — review them below.')
     } catch (e) {
-      setError((e as Error).message)
+      if ((e as Error).name === 'AbortError') setProgress('Stopped.')
+      else setError((e as Error).message)
     } finally {
       setBusy(false)
     }
@@ -122,7 +132,7 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {busy ? (
-            <Button variant="danger" onClick={() => (stop.current = true)}>
+            <Button variant="danger" onClick={() => ((stop.current = true), ctrl.current?.abort())}>
               Stop
             </Button>
           ) : (
@@ -142,7 +152,7 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
           )}
           <span className="text-xs text-stone-500">{progress || llm.missing}</span>
         </div>
-        {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
+        {error && <p className="mt-2 whitespace-pre-line text-sm text-red-700">{error}</p>}
       </Card>
 
       <div className="flex flex-wrap items-center gap-2">

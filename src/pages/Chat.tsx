@@ -92,6 +92,7 @@ export default function ChatPage() {
           maxTokens: settings.maxTokens,
           effort: settings.anthropicEffort,
           signal: ctrl.signal,
+          feature: 'Assistant chat',
         },
         (delta) => {
           acc += delta

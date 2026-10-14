@@ -55,9 +55,16 @@ Each manuscript has a **Workspace** (from the editor or the manuscript list):
 - **Q1 checklist**: automatic items (structure, highlights, declarations, integrity checks, recent-literature share) plus manual submission items, per publisher.
 - **History**: snapshots saved automatically before AI text is accepted or a version is restored, plus manual snapshots; restore any of the last 50.
 
+## Features (Phase 6)
+
+- **Private GitHub sync** (Settings → Sync): manuscripts, chats and the literature library (optionally with extracted PDF text) are kept in your own private repository, one commit per sync, encrypted with a key derived from your vault passphrase. Newer changes win per item; deletions propagate; a manuscript overwritten by a newer synced version is kept in its History. Needs a fine-grained token with *Contents: Read and write* on that one repository.
+- **Backup**: download everything as one JSON file and merge it back on any browser (API keys are never included).
+- **Usage & cost**: tokens per provider, model and feature for every AI request, with your own prices per million tokens.
+- **Installable offline app (PWA)**: after the first visit, writing, calculators, checks and Word/LaTeX export work without a connection; AI, search and sync need one.
+
 ## Privacy model
 
-This is a static site with no backend. Your keys, chats, manuscripts and PDFs never leave your browser except for the requests you make to the AI provider you chose and the metadata lookups sent to OpenAlex and Crossref (search terms, DOIs and reference titles). Use API keys with a spending limit.
+This is a static site with no backend. Your keys, chats, manuscripts and PDFs never leave your browser except for the requests you make to the AI provider you chose and the metadata lookups sent to OpenAlex and Crossref (search terms, DOIs and reference titles). If you turn on sync, your data also goes to your own private GitHub repository, encrypted by default. Use API keys with a spending limit.
 
 ## Development
 
@@ -78,4 +85,4 @@ Push to `main`. The workflow in `.github/workflows/deploy.yml` builds and publis
 3. ✅ Literature — OpenAlex/Crossref search, DOI verification, literature matrix, PDF RAG
 4. ✅ Methods library — RMR/Q/GSI/Hoek–Brown, rockburst criteria, support design calculators
 5. ✅ Automation pipeline — idea → draft → Reviewer 2 → revision, consistency checker, Q1 checklist
-6. Sync & polish — private GitHub sync, version history, cost tracking, PWA
+6. ✅ Sync & polish — private GitHub sync, version history, cost tracking, PWA

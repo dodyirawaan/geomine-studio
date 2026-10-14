@@ -52,7 +52,7 @@ export default function MatrixTab({ papers, selected }: { papers: Paper[]; selec
         } else if (!p.abstract) {
           throw new Error('no abstract or PDF text to extract from')
         }
-        const { text } = await llm.run(system, matrixRequest(p, source, topic), { signal: ctrl.signal })
+        const { text } = await llm.run(system, matrixRequest(p, source, topic), { signal: ctrl.signal, feature: 'Literature matrix' })
         await db.papers.update(p.id, { matrix: parseMatrixReply(text), matrixSource: source.kind, updatedAt: Date.now() })
       } catch (e) {
         if (!ctrl.signal.aborted) setErrors((prev) => [...prev, `${shortCite(p)}: ${(e as Error).message}`])
@@ -68,7 +68,7 @@ export default function MatrixTab({ papers, selected }: { papers: Paper[]; selec
     setBusy('synth')
     setSynthesis('')
     try {
-      await llm.run(buildSystemPrompt('gap', ''), synthesisRequest(rows, topic), { signal: ctrl.signal, onText: setSynthesis })
+      await llm.run(buildSystemPrompt('gap', ''), synthesisRequest(rows, topic), { signal: ctrl.signal, onText: setSynthesis, feature: 'Literature synthesis' })
     } catch (e) {
       if (!ctrl.signal.aborted) setSynthesis((s) => `${s}\n\n**Error:** ${(e as Error).message}`)
     } finally {

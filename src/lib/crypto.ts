@@ -52,3 +52,38 @@ export async function decryptJson<T>(blob: EncryptedBlob, passphrase: string): P
   const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(blob.iv) }, key, fromB64(blob.ct))
   return JSON.parse(dec.decode(pt)) as T
 }
+
+// ---------- Many records under one key (sync, backups) ----------
+
+export interface KeyedBlob {
+  v: 2
+  iv: string
+  ct: string
+}
+
+export function randomSalt(): string {
+  return toB64(crypto.getRandomValues(new Uint8Array(16)))
+}
+
+/** Derives a data key once, so many records can be encrypted without repeating PBKDF2. */
+export function deriveDataKey(passphrase: string, saltB64: string): Promise<CryptoKey> {
+  return deriveKey(passphrase, fromB64(saltB64))
+}
+
+export async function encryptWithKey(data: unknown, key: CryptoKey): Promise<KeyedBlob> {
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(JSON.stringify(data)))
+  return { v: 2, iv: toB64(iv), ct: toB64(ct) }
+}
+
+/** Throws if the key is wrong or the data was tampered with. */
+export async function decryptWithKey<T>(blob: KeyedBlob, key: CryptoKey): Promise<T> {
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(blob.iv) }, key, fromB64(blob.ct))
+  return JSON.parse(dec.decode(pt)) as T
+}
+
+/** Hex SHA-256 of a string, to detect which records changed since the last sync. */
+export async function sha256(text: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', enc.encode(text))
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}

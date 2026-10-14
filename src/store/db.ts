@@ -31,6 +31,8 @@ export const db = new Dexie('geomine-studio') as Dexie & {
   chunks: EntityTable<Chunk, 'id'>
   runs: EntityTable<PipelineRun, 'manuscriptId'>
   snapshots: EntityTable<Snapshot, 'id'>
+  usage: EntityTable<UsageRecord, 'id'>
+  tombstones: EntityTable<Tombstone, 'key'>
 }
 
 db.version(1).stores({
@@ -50,6 +52,11 @@ db.version(3).stores({
 db.version(4).stores({
   runs: 'manuscriptId',
   snapshots: '++id, manuscriptId, createdAt',
+})
+
+db.version(5).stores({
+  usage: '++id, at',
+  tombstones: 'key',
 })
 
 export type SectionRole = 'highlights' | 'abstract' | 'keywords' | 'body' | 'back'
@@ -159,4 +166,26 @@ export interface Snapshot {
   sections: ManuscriptSection[]
   bibtex: string
   createdAt: number
+}
+
+/** Token usage of one AI request, for cost tracking. */
+export interface UsageRecord {
+  id?: number
+  at: number
+  provider: ProviderId
+  model: string
+  feature: string
+  inputTokens: number
+  outputTokens: number
+}
+
+export type SyncKind = 'manuscript' | 'conversation' | 'paper'
+
+/** Marks a deleted record so that sync removes it on other devices instead of bringing it back. */
+export interface Tombstone {
+  /** `${kind}:${id}` */
+  key: string
+  kind: SyncKind
+  id: string
+  deletedAt: number
 }

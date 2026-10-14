@@ -25,6 +25,8 @@ export interface ChatRequest {
   maxTokens: number
   effort?: Effort
   signal?: AbortSignal
+  /** Which part of the app made the request, for the usage log. */
+  feature?: string
 }
 
 export interface ChatResult {

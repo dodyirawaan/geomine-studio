@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
-import { decryptJson, encryptJson, type EncryptedBlob } from '../lib/crypto'
+import { decryptJson, deriveDataKey, encryptJson, type EncryptedBlob } from '../lib/crypto'
 import { readJson, removeKey, writeJson } from '../lib/storage'
 import type { ProviderId } from '../ai/types'
 
@@ -18,6 +18,8 @@ interface VaultCtx {
   save: (next: Secrets) => Promise<void>
   /** Delete the stored vault entirely (used when the passphrase is forgotten). */
   reset: () => void
+  /** AES key derived from the vault passphrase and `salt`, for encrypting synced data. The passphrase itself never leaves the vault. */
+  dataKey: (saltB64: string) => Promise<CryptoKey>
 }
 
 const Ctx = createContext<VaultCtx | null>(null)
@@ -61,8 +63,16 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     lock()
   }, [lock])
 
+  const dataKey = useCallback(
+    (saltB64: string) => {
+      if (!passphrase) return Promise.reject(new Error('Vault is locked'))
+      return deriveDataKey(passphrase, saltB64)
+    },
+    [passphrase],
+  )
+
   const status: VaultStatus = passphrase ? 'unlocked' : hasVault ? 'locked' : 'empty'
-  const value = useMemo(() => ({ status, secrets, unlock, lock, save, reset }), [status, secrets, unlock, lock, save, reset])
+  const value = useMemo(() => ({ status, secrets, unlock, lock, save, reset, dataKey }), [status, secrets, unlock, lock, save, reset, dataKey])
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 

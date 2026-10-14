@@ -78,6 +78,7 @@ export function AssistPanel({
           maxTokens: settings.maxTokens,
           effort: settings.anthropicEffort,
           signal: ctrl.signal,
+          feature: 'Editor co-author',
         },
         (delta) => {
           acc += delta

@@ -64,7 +64,7 @@ export default function PipelineTab({ m }: { m: Manuscript }) {
     task('outline', async (signal) => {
       await saveRun(m.id, { idea })
       setProgress('Planning the manuscript…')
-      const { text } = await llm.run(buildSystemPrompt('gap', m.journal), outlineRequest(m, idea), { signal, onText: setStream })
+      const { text } = await llm.run(buildSystemPrompt('gap', m.journal), outlineRequest(m, idea), { signal, onText: setStream, feature: 'Pipeline: outline' })
       if (!signal.aborted) await saveRun(m.id, { outline: text })
     })
 
@@ -88,7 +88,7 @@ export default function PipelineTab({ m }: { m: Manuscript }) {
         if (signal.aborted) break
         setProgress(`Drafting ${i + 1}/${todo.length}: ${s.title}`)
         const section = working.sections.find((x) => x.id === s.id)!
-        const { text } = await llm.run(buildSystemPrompt(modeFor(action, section), m.journal), buildAssistMessage(working, section, action, ''), { signal, onText: setStream })
+        const { text } = await llm.run(buildSystemPrompt(modeFor(action, section), m.journal), buildAssistMessage(working, section, action, ''), { signal, onText: setStream, feature: 'Pipeline: draft' })
         if (signal.aborted) break
         const clean = text.trim().replace(/^```(?:markdown|md)?\s*\n([\s\S]*?)\n```$/, '$1').trim()
         working = { ...working, sections: working.sections.map((x) => (x.id === s.id ? { ...x, content: clean } : x)) }
@@ -99,7 +99,7 @@ export default function PipelineTab({ m }: { m: Manuscript }) {
   const review = () =>
     task('review', async (signal) => {
       setProgress('Reviewer 2 is reading the manuscript…')
-      const { text } = await llm.run(buildSystemPrompt('reviewer', m.journal), reviewRequest(m), { signal, onText: setStream })
+      const { text } = await llm.run(buildSystemPrompt('reviewer', m.journal), reviewRequest(m), { signal, onText: setStream, feature: 'Pipeline: Reviewer 2' })
       if (!signal.aborted) await saveRun(m.id, { review: parseReview(text), responseLetter: undefined })
     })
 
@@ -117,7 +117,7 @@ export default function PipelineTab({ m }: { m: Manuscript }) {
         if (signal.aborted) break
         const section = m.sections.find((s) => s.id === sid)!
         setProgress(`Revising ${++i}/${groups.size}: ${section.title} (${comments.map((c) => c.id).join(', ')})`)
-        const { text } = await llm.run(buildSystemPrompt('general', m.journal), revisionRequest(m, section, comments), { signal, onText: setStream })
+        const { text } = await llm.run(buildSystemPrompt('general', m.journal), revisionRequest(m, section, comments), { signal, onText: setStream, feature: 'Pipeline: revision' })
         if (signal.aborted) break
         const parsed = parseRevision(text)
         Object.assign(responses, parsed.responses)

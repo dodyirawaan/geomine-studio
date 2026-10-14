@@ -5,6 +5,9 @@ import 'katex/dist/katex.min.css'
 import './index.css'
 import App from './App.tsx'
 import { VaultProvider } from './store/vault.tsx'
+import { installTombstoneHooks } from './sync/dataset'
+
+installTombstoneHooks()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -15,3 +18,9 @@ createRoot(document.getElementById('root')!).render(
     </HashRouter>
   </StrictMode>,
 )
+
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js?v=${__BUILD_ID__}`).catch(() => {})
+  })
+}

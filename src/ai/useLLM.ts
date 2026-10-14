@@ -14,12 +14,12 @@ export function useLLM() {
   const ready = status === 'unlocked' && !!apiKey && !!model
 
   const run = useCallback(
-    async (system: string, user: string, opts: { onText?: (acc: string) => void; signal?: AbortSignal } = {}): Promise<{ text: string } & ChatResult> => {
+    async (system: string, user: string, opts: { onText?: (acc: string) => void; signal?: AbortSignal; feature?: string } = {}): Promise<{ text: string } & ChatResult> => {
       if (!apiKey || !model) throw new Error('Unlock the vault and choose a provider and model first.')
       let text = ''
       const result = await PROVIDERS[provider].streamChat(
         apiKey,
-        { model, system, messages: [{ role: 'user', content: user }], maxTokens: settings.maxTokens, effort: settings.anthropicEffort, signal: opts.signal },
+        { model, system, messages: [{ role: 'user', content: user }], maxTokens: settings.maxTokens, effort: settings.anthropicEffort, signal: opts.signal, feature: opts.feature },
         (d) => {
           text += d
           opts.onText?.(text)

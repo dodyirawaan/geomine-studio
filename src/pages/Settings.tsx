@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { PROVIDER_IDS, PROVIDERS } from '../ai/providers'
 import type { Effort, ProviderId } from '../ai/types'
+import { Link } from 'react-router-dom'
 import { ModelPicker } from '../components/ModelPicker'
+import { BackupCard, SyncCard } from '../components/SyncCard'
 import { UnlockPanel } from '../components/UnlockPanel'
 import { Button, Card, Input, Label, Select } from '../components/ui'
 import { useSettings } from '../store/settings'
@@ -88,6 +90,16 @@ export default function SettingsPage() {
               onChange={(e) => setDraft({ ...draft, openalexKey: e.target.value.trim() })}
             />
           </label>
+          <label className="block">
+            <Label hint="optional — fine-grained token for syncing (see Sync below)">GitHub</Label>
+            <Input
+              type="password"
+              autoComplete="off"
+              placeholder="github_pat_..."
+              value={draft.githubToken ?? ''}
+              onChange={(e) => setDraft({ ...draft, githubToken: e.target.value.trim() })}
+            />
+          </label>
           <div className="flex items-center gap-3">
             <Button onClick={saveKeys}>Save keys</Button>
             {saved && <span className="text-sm text-green-600">Saved</span>}
@@ -146,6 +158,13 @@ export default function SettingsPage() {
           </label>
         </div>
       </Card>
+      <SyncCard />
+      <BackupCard />
+      <p className="text-sm">
+        <Link to="/usage" className="text-amber-700 underline dark:text-amber-500">
+          Usage &amp; cost →
+        </Link>
+      </p>
     </div>
   )
 }

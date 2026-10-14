@@ -91,7 +91,7 @@ function AiCheck({ m }: { m: Manuscript }) {
     setBusy(true)
     setError('')
     try {
-      const { text } = await llm.run(buildSystemPrompt('reviewer', m.journal), consistencyRequest(m), { signal: ctrl.signal })
+      const { text } = await llm.run(buildSystemPrompt('reviewer', m.journal), consistencyRequest(m), { signal: ctrl.signal, feature: 'AI consistency check' })
       setFindings(parseFindings(text))
     } catch (e) {
       if (!ctrl.signal.aborted) setError((e as Error).message)

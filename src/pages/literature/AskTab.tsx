@@ -52,6 +52,7 @@ export default function AskTab({ papers, selected }: { papers: Paper[]; selected
     try {
       await llm.run(buildSystemPrompt('literature', ''), askRequest(q, sources), {
         signal: ctrl.signal,
+        feature: 'Ask the library',
         onText: (acc) => setTurns((t) => t.map((x, i) => (i === idx ? { ...x, answer: acc } : x))),
       })
     } catch (err) {

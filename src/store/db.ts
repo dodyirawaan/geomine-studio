@@ -195,7 +195,7 @@ export interface UsageRecord {
   outputTokens: number
 }
 
-export type SyncKind = 'manuscript' | 'conversation' | 'paper'
+export type SyncKind = 'manuscript' | 'conversation' | 'paper' | 'review' | 'experiment'
 
 /** Marks a deleted record so that sync removes it on other devices instead of bringing it back. */
 export interface Tombstone {

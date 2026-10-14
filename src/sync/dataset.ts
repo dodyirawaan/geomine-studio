@@ -1,6 +1,6 @@
 // The syncable data set: manuscripts, conversations with their messages, library papers and (optionally) PDF text.
 // Merge rule: per record, the newer `updatedAt` wins; a tombstone newer than a record deletes it everywhere.
-import { db, type Chunk, type Conversation, type Manuscript, type Paper, type StoredMessage, type SyncKind, type Tombstone } from '../store/db'
+import { db, type Chunk, type Conversation, type Paper, type StoredMessage, type SyncKind, type Tombstone } from '../store/db'
 
 export type RecordKind = SyncKind | 'pdftext'
 
@@ -21,15 +21,31 @@ interface PdfTextData {
   chunks: Omit<Chunk, 'id' | 'paperId'>[]
 }
 
-export const pathFor = (kind: RecordKind, id: string) =>
-  `${kind === 'manuscript' ? 'manuscripts' : kind === 'conversation' ? 'conversations' : kind === 'paper' ? 'papers' : 'pdftext'}/${id}.json`
+/** Repository folder of each kind of record. */
+const FOLDERS: Record<RecordKind, string> = {
+  manuscript: 'manuscripts',
+  conversation: 'conversations',
+  paper: 'papers',
+  pdftext: 'pdftext',
+  review: 'reviews',
+  experiment: 'experiments',
+}
+
+export const pathFor = (kind: RecordKind, id: string) => `${FOLDERS[kind]}/${id}.json`
 
 export function parsePath(path: string): { kind: RecordKind; id: string } | null {
-  const m = /^(manuscripts|conversations|papers|pdftext)\/(.+)\.json$/.exec(path)
-  if (!m) return null
-  const kind = ({ manuscripts: 'manuscript', conversations: 'conversation', papers: 'paper', pdftext: 'pdftext' } as const)[m[1] as 'manuscripts']
-  return { kind, id: m[2] }
+  const m = /^([a-z]+)\/(.+)\.json$/.exec(path)
+  const kind = m && (Object.keys(FOLDERS) as RecordKind[]).find((k) => FOLDERS[k] === m[1])
+  return kind ? { kind, id: m![2] } : null
 }
+
+/** Tables holding one record per synced file (conversations also carry their messages). */
+const tableOf = (kind: SyncKind) =>
+  ({ manuscript: db.manuscripts, conversation: db.conversations, paper: db.papers, review: db.reviews, experiment: db.experiments })[kind] as unknown as {
+    get: (id: string) => Promise<{ updatedAt: number } | undefined>
+    put: (v: unknown) => Promise<unknown>
+    delete: (id: string) => Promise<void>
+  }
 
 /** Canonical text of a record; equal text means nothing changed. */
 export function serialize(r: SyncRecord): string {
@@ -56,6 +72,8 @@ export async function collectLocal(includePdf: boolean): Promise<SyncRecord[]> {
   }
   const papers = await db.papers.toArray()
   for (const p of papers) out.push({ path: pathFor('paper', p.id), kind: 'paper', id: p.id, updatedAt: p.updatedAt, data: p })
+  for (const r of await db.reviews.toArray()) out.push({ path: pathFor('review', r.id), kind: 'review', id: r.id, updatedAt: r.updatedAt, data: r })
+  for (const e of await db.experiments.toArray()) out.push({ path: pathFor('experiment', e.id), kind: 'experiment', id: e.id, updatedAt: e.updatedAt, data: e })
   if (includePdf) {
     const chunks = await db.chunks.toArray()
     for (const p of papers.filter((x) => x.pdfPages)) {
@@ -87,6 +105,8 @@ export function installTombstoneHooks(): void {
   db.manuscripts.hook('deleting', (key) => queue('manuscript', String(key)))
   db.conversations.hook('deleting', (key) => queue('conversation', String(key)))
   db.papers.hook('deleting', (key) => queue('paper', String(key)))
+  db.reviews.hook('deleting', (key) => queue('review', String(key)))
+  db.experiments.hook('deleting', (key) => queue('experiment', String(key)))
 }
 
 export async function mergeTombstones(remote: Tombstone[]): Promise<Tombstone[]> {
@@ -120,17 +140,18 @@ export async function applyRemote(records: SyncRecord[], tombstones: Tombstone[]
 
   suppress = true
   try {
-    await db.transaction('rw', [db.manuscripts, db.conversations, db.messages, db.papers, db.chunks], async () => {
+    await db.transaction('rw', [db.manuscripts, db.conversations, db.messages, db.papers, db.chunks, db.reviews, db.experiments], async () => {
       for (const r of records.filter((x) => x.kind !== 'pdftext')) {
         const kind = r.kind as SyncKind
         if (dead(kind, r.id, r.updatedAt)) continue
-        const table = kind === 'manuscript' ? db.manuscripts : kind === 'conversation' ? db.conversations : db.papers
-        const local = (await table.get(r.id)) as { updatedAt: number } | undefined
+        const table = tableOf(kind)
+        const local = await table.get(r.id)
         if (local && local.updatedAt >= r.updatedAt) continue
-        if (kind === 'manuscript') await db.manuscripts.put(r.data as Manuscript)
-        else if (kind === 'paper') {
+        if (kind === 'paper') {
           await db.papers.put(r.data as Paper)
           acceptedPapers.add(r.id)
+        } else if (kind !== 'conversation') {
+          await table.put(r.data)
         } else {
           const d = r.data as ConversationData
           await db.conversations.put(d.conversation)
@@ -155,8 +176,8 @@ export async function applyRemote(records: SyncRecord[], tombstones: Tombstone[]
         if (p?.pdfPages && !(await db.chunks.where('paperId').equals(id).count())) await db.papers.update(id, { pdfPages: undefined, pdfName: undefined })
       }
       for (const t of tombstones) {
-        const table = t.kind === 'manuscript' ? db.manuscripts : t.kind === 'conversation' ? db.conversations : db.papers
-        const local = (await table.get(t.id)) as { updatedAt: number } | undefined
+        const table = tableOf(t.kind)
+        const local = await table.get(t.id)
         if (!local || local.updatedAt > t.deletedAt) continue
         if (t.kind === 'conversation') await db.messages.where('convId').equals(t.id).delete()
         if (t.kind === 'paper') await db.chunks.where('paperId').equals(t.id).delete()

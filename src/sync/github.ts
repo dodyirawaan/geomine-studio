@@ -260,11 +260,13 @@ async function syncOnce(c: SyncConfig, token: string, dataKey: (salt: string) =>
 }
 
 /** Number of records and tombstones that would be synced, for the settings card. */
-export async function localCounts(): Promise<{ manuscripts: number; conversations: number; papers: number; tombstones: number }> {
+export async function localCounts(): Promise<{ manuscripts: number; conversations: number; papers: number; reviews: number; experiments: number; tombstones: number }> {
   return {
     manuscripts: await db.manuscripts.count(),
     conversations: await db.conversations.count(),
     papers: await db.papers.count(),
+    reviews: await db.reviews.count(),
+    experiments: await db.experiments.count(),
     tombstones: await db.tombstones.count(),
   }
 }

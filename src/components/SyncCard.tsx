@@ -58,7 +58,7 @@ export function SyncCard() {
     <Card title="Sync to a private GitHub repository">
       <div className="space-y-3 text-sm">
         <p className="text-stone-600 dark:text-stone-400">
-          Keeps manuscripts, chats and the literature library the same on every browser you use. Each sync is one commit to your own private
+          Keeps manuscripts, chats, the literature library, review projects and VLab experiments the same on every browser you use. Each sync is one commit to your own private
           repository; with encryption on, GitHub only stores ciphertext.
         </p>
         <details className="rounded-md bg-stone-50 p-2.5 text-xs dark:bg-stone-950">
@@ -119,7 +119,7 @@ export function SyncCard() {
         )}
         {counts && (
           <p className="text-xs text-stone-500">
-            In this browser: {counts.manuscripts} manuscripts · {counts.conversations} chats · {counts.papers} papers
+            In this browser: {counts.manuscripts} manuscripts · {counts.conversations} chats · {counts.papers} papers · {counts.reviews} reviews · {counts.experiments} experiments
             {counts.tombstones ? ` · ${counts.tombstones} deletions to propagate` : ''}. Snapshots, usage logs and settings stay local.
           </p>
         )}
@@ -137,7 +137,7 @@ export function BackupCard() {
   return (
     <Card title="Backup">
       <p className="mb-3 text-sm text-stone-600 dark:text-stone-400">
-        Download everything in this browser — manuscripts with their history, chats, library and PDF text — as one JSON file, or merge a backup
+        Download everything in this browser — manuscripts with their history, chats, library and PDF text, reviews and experiments — as one JSON file, or merge a backup
         back in (newer items win). API keys are not included.
       </p>
       <div className="flex flex-wrap items-center gap-2">

@@ -11,7 +11,7 @@ export function normTitle(t: string): string {
 }
 
 /** Index of an existing record that is the same work (same DOI, OpenAlex id or normalised title + year). */
-function findSame(records: ReviewRecord[], m: PaperMeta): number {
+export function findSame(records: ReviewRecord[], m: PaperMeta): number {
   const t = normTitle(m.title)
   return records.findIndex(
     (r) =>

@@ -4,11 +4,13 @@ import { buildSystemPrompt, type JournalId } from '../../ai/prompts'
 import { useLLM } from '../../ai/useLLM'
 import { Badge, Button, Card, Input, Select } from '../../components/ui'
 import type { Save } from '../../review/project'
+import { castVote, isConflict, resolveConflict, vote, type Reviewer } from '../../review/dual'
 import { parseScreening, screeningRequest } from '../../review/prompts'
 import type { Decision, ReviewProject, ReviewRecord } from '../../review/types'
+import { DualCard } from './DualCard'
 
 const PAGE = 25
-type Filter = 'todo' | 'maybe' | 'include' | 'exclude' | 'ai-include' | 'ai-exclude' | 'all'
+type Filter = 'todo' | 'conflicts' | 'maybe' | 'include' | 'exclude' | 'ai-include' | 'ai-exclude' | 'all'
 
 const FT_REASONS = ['Not underground mining / rock', 'No original data or method', 'Outcome not reported', 'Full text not available', 'Not in English', 'Duplicate publication']
 
@@ -29,6 +31,10 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
   const stop = useRef(false)
   const ctrl = useRef<AbortController | null>(null)
   const codes = exclusionCodes(p)
+  const dual = p.dual?.enabled ? p.dual : undefined
+  const me: Reviewer = dual?.active ?? 1
+  /** The decision of whoever is screening now: the active reviewer's vote in dual mode, else the final decision. */
+  const mine = (r: ReviewRecord) => (dual ? vote(r, me) : r.ta)
 
   const shown = useMemo(() => {
     const f = q.trim().toLowerCase()
@@ -36,7 +42,9 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
       if (f && !`${r.meta.title} ${r.meta.abstract ?? ''}`.toLowerCase().includes(f)) return false
       switch (filter) {
         case 'todo':
-          return !r.ta
+          return !mine(r)
+        case 'conflicts':
+          return isConflict(r)
         case 'maybe':
           return r.ta === 'maybe'
         case 'include':
@@ -44,18 +52,24 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
         case 'exclude':
           return r.ta === 'exclude'
         case 'ai-include':
-          return !r.ta && r.ai?.decision === 'include'
+          return !mine(r) && r.ai?.decision === 'include'
         case 'ai-exclude':
-          return !r.ta && r.ai?.decision === 'exclude'
+          return !mine(r) && r.ai?.decision === 'exclude'
         default:
           return true
       }
     })
-  }, [p.records, filter, q])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p.records, filter, q, dual?.enabled, me])
   const pageItems = shown.slice(page * PAGE, page * PAGE + PAGE)
 
   const decide = (id: string, ta: Decision, taReason = '') =>
-    save((cur) => ({ records: cur.records.map((r) => (r.id === id ? { ...r, ta, taReason, ...(ta !== 'include' ? { ft: undefined, ftReason: undefined } : {}) } : r)) }))
+    save((cur) => ({
+      records: cur.records.map((r) =>
+        r.id !== id ? r : cur.dual?.enabled ? castVote(r, cur.dual.active, ta, taReason) : { ...r, ta, taReason, ...(ta !== 'include' ? { ft: undefined, ftReason: undefined } : {}) },
+      ),
+    }))
+  const resolve = (id: string, d: Decision, reason: string) => save((cur) => ({ records: cur.records.map((r) => (r.id === id ? resolveConflict(r, d, reason) : r)) }))
 
   // Keyboard: I include, E exclude (first criterion if none chosen), M maybe, ↑/↓ move.
   useEffect(() => {
@@ -75,7 +89,7 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
   })
 
   async function suggest() {
-    const todo = p.records.filter((r) => !r.ta && !r.ai)
+    const todo = p.records.filter((r) => !r.ai && (p.dual?.enabled || !r.ta))
     if (!todo.length) return
     setBusy(true)
     setError('')
@@ -113,13 +127,14 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
   }
 
   const counts = {
-    todo: p.records.filter((r) => !r.ta).length,
+    todo: p.records.filter((r) => !mine(r)).length,
+    conflicts: p.records.filter(isConflict).length,
     maybe: p.records.filter((r) => r.ta === 'maybe').length,
     include: p.records.filter((r) => r.ta === 'include').length,
     exclude: p.records.filter((r) => r.ta === 'exclude').length,
-    aiInc: p.records.filter((r) => !r.ta && r.ai?.decision === 'include').length,
-    aiExc: p.records.filter((r) => !r.ta && r.ai?.decision === 'exclude').length,
-    noAi: p.records.filter((r) => !r.ta && !r.ai).length,
+    aiInc: p.records.filter((r) => !mine(r) && r.ai?.decision === 'include').length,
+    aiExc: p.records.filter((r) => !mine(r) && r.ai?.decision === 'exclude').length,
+    noAi: p.records.filter((r) => !r.ai && (dual || !r.ta)).length,
   }
 
   return (
@@ -140,12 +155,12 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
               <Bot className="h-4 w-4" /> AI suggestions for {counts.noAi} record{counts.noAi === 1 ? '' : 's'}
             </Button>
           )}
-          {counts.aiInc > 0 && (
+          {!dual && counts.aiInc > 0 && (
             <Button variant="subtle" className="text-xs" onClick={() => acceptAi('include')}>
               Accept {counts.aiInc} AI includes
             </Button>
           )}
-          {counts.aiExc > 0 && (
+          {!dual && counts.aiExc > 0 && (
             <Button variant="subtle" className="text-xs" onClick={() => acceptAi('exclude')}>
               Accept {counts.aiExc} AI excludes
             </Button>
@@ -153,11 +168,15 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
           <span className="text-xs text-stone-500">{progress || llm.missing}</span>
         </div>
         {error && <p className="mt-2 whitespace-pre-line text-sm text-red-700">{error}</p>}
+        {dual && <p className="mt-2 text-xs text-stone-500">With two reviewers, AI suggestions stay hidden on a record until the active reviewer has decided it, so they cannot influence the independent decision.</p>}
       </Card>
+
+      <DualCard p={p} save={save} aiLabel={llm.label} />
 
       <div className="flex flex-wrap items-center gap-2">
         <Select value={filter} onChange={(e) => (setFilter(e.target.value as Filter), setPage(0), setActive(0))} className="w-auto">
-          <option value="todo">To screen ({counts.todo})</option>
+          <option value="todo">{dual ? `To screen by ${dual.names[me - 1]}` : 'To screen'} ({counts.todo})</option>
+          {dual && <option value="conflicts">Disagreements to resolve ({counts.conflicts})</option>}
           <option value="ai-include">To screen — AI says include ({counts.aiInc})</option>
           <option value="ai-exclude">To screen — AI says exclude ({counts.aiExc})</option>
           <option value="maybe">Maybe ({counts.maybe})</option>
@@ -173,7 +192,16 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
       ) : (
         <ul className="space-y-2">
           {pageItems.map((r, i) => (
-            <RecordCard key={r.id} r={r} active={i === active} onFocus={() => setActive(i)} codes={codes} onDecide={(d, reason) => decide(r.id, d, reason)} />
+            <RecordCard
+              key={r.id}
+              r={r}
+              active={i === active}
+              onFocus={() => setActive(i)}
+              codes={codes}
+              onDecide={(d, reason) => decide(r.id, d, reason)}
+              dual={dual ? { me, names: dual.names } : undefined}
+              onResolve={(d, reason) => resolve(r.id, d, reason)}
+            />
           ))}
         </ul>
       )}
@@ -194,7 +222,26 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
   )
 }
 
-function RecordCard({ r, active, onFocus, codes, onDecide }: { r: ReviewRecord; active: boolean; onFocus: () => void; codes: { code: string; text: string }[]; onDecide: (d: Decision, reason?: string) => void }) {
+function RecordCard({
+  r,
+  active,
+  onFocus,
+  codes,
+  onDecide,
+  dual,
+  onResolve,
+}: {
+  r: ReviewRecord
+  active: boolean
+  onFocus: () => void
+  codes: { code: string; text: string }[]
+  onDecide: (d: Decision, reason?: string) => void
+  dual?: { me: Reviewer; names: [string, string] }
+  onResolve: (d: Decision, reason: string) => void
+}) {
+  const mine = dual ? vote(r, dual.me) : r.ta
+  const mineReason = dual ? (dual.me === 1 ? r.ta1Reason : r.ta2Reason) : r.taReason
+  const other: Reviewer = dual?.me === 1 ? 2 : 1
   const ref = useRef<HTMLLIElement>(null)
   useEffect(() => {
     if (active) ref.current?.scrollIntoView({ block: 'nearest' })
@@ -204,7 +251,8 @@ function RecordCard({ r, active, onFocus, codes, onDecide }: { r: ReviewRecord; 
     <li ref={ref} onClick={onFocus} className={`rounded-xl border bg-white p-3.5 text-sm dark:bg-stone-900 ${tone} ${active ? 'ring-2 ring-amber-500/50' : ''}`}>
       <div className="flex flex-wrap items-start gap-2">
         <p className="min-w-0 flex-1 font-medium">{r.meta.title}</p>
-        {r.ta && <Badge tone={r.ta === 'include' ? 'green' : r.ta === 'exclude' ? 'red' : 'amber'}>{r.ta}</Badge>}
+        {dual && isConflict(r) && <Badge tone="amber">disagreement</Badge>}
+        {r.ta && <Badge tone={r.ta === 'include' ? 'green' : r.ta === 'exclude' ? 'red' : 'amber'}>{dual ? `final: ${r.ta}` : r.ta}</Badge>}
       </div>
       <p className="mt-0.5 text-xs text-stone-500">
         {r.meta.authors.slice(0, 3).join(', ')}
@@ -216,7 +264,7 @@ function RecordCard({ r, active, onFocus, codes, onDecide }: { r: ReviewRecord; 
         )}
       </p>
       <p className={`mt-2 text-stone-700 dark:text-stone-300 ${active ? '' : 'line-clamp-3'}`}>{r.meta.abstract ?? <span className="text-stone-400">No abstract available — decide from the title or open the source.</span>}</p>
-      {r.ai && !r.ta && (
+      {r.ai && (dual ? !!mine : !r.ta) && (
         <p className="mt-2 flex gap-1.5 rounded-lg bg-stone-50 p-2 text-xs dark:bg-stone-800/60">
           <Bot className="h-3.5 w-3.5 shrink-0 text-stone-500" />
           <span>
@@ -224,12 +272,22 @@ function RecordCard({ r, active, onFocus, codes, onDecide }: { r: ReviewRecord; 
           </span>
         </p>
       )}
-      {r.taReason && r.ta !== 'include' && <p className="mt-1 text-xs text-stone-500">Reason: {r.taReason}</p>}
+      {mineReason && mine !== 'include' && <p className="mt-1 text-xs text-stone-500">Reason: {mineReason}</p>}
+      {dual && mine && (
+        <p className="mt-1 text-xs text-stone-500">
+          {dual.names[other - 1]}: {vote(r, other) ? <b>{vote(r, other)}</b> : 'not decided yet'}
+          {vote(r, other) && (other === 1 ? r.ta1Reason : r.ta2Reason) ? ` — ${other === 1 ? r.ta1Reason : r.ta2Reason}` : ''}
+          {other === 2 && r.ta2Ai ? ' (AI)' : ''}
+          {r.taResolved ? ' · disagreement resolved' : ''}
+        </p>
+      )}
+      {dual && isConflict(r) && <ResolveBar r={r} names={dual.names} onResolve={onResolve} />}
+      {r.via && r.via !== 'manual' && <p className="mt-1 text-xs text-stone-500">Found by {r.via} citation searching{r.links?.length ? ` · linked to ${r.links.length} included stud${r.links.length === 1 ? 'y' : 'ies'}` : ''}</p>}
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-        <Button variant={r.ta === 'include' ? 'primary' : 'ghost'} className="min-h-8 text-xs" onClick={() => onDecide('include', r.ai?.decision === 'include' ? r.ai.reason : '')}>
+        <Button variant={mine === 'include' ? 'primary' : 'ghost'} className="min-h-8 text-xs" onClick={() => onDecide('include', !dual && r.ai?.decision === 'include' ? r.ai.reason : '')}>
           <Check className="h-3.5 w-3.5" /> Include
         </Button>
-        <Button variant="ghost" className="min-h-8 text-xs" onClick={() => onDecide('maybe')}>
+        <Button variant={mine === 'maybe' ? 'primary' : 'ghost'} className="min-h-8 text-xs" onClick={() => onDecide('maybe')}>
           <HelpCircle className="h-3.5 w-3.5" /> Maybe
         </Button>
         <span className="mx-1 text-xs text-stone-400">Exclude:</span>
@@ -238,7 +296,7 @@ function RecordCard({ r, active, onFocus, codes, onDecide }: { r: ReviewRecord; 
             key={c.code}
             title={c.text}
             onClick={() => onDecide('exclude', `${c.code}: ${c.text}`)}
-            className={`inline-flex min-h-8 items-center gap-1 rounded-lg border px-2 text-xs ${r.ta === 'exclude' && r.taReason?.startsWith(c.code) ? 'border-red-400 bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-300' : 'border-stone-300 hover:bg-stone-50 dark:border-stone-700 dark:hover:bg-stone-800'}`}
+            className={`inline-flex min-h-8 items-center gap-1 rounded-lg border px-2 text-xs ${mine === 'exclude' && mineReason?.startsWith(c.code) ? 'border-red-400 bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-300' : 'border-stone-300 hover:bg-stone-50 dark:border-stone-700 dark:hover:bg-stone-800'}`}
           >
             <X className="h-3 w-3" /> {c.code}
           </button>
@@ -250,6 +308,26 @@ function RecordCard({ r, active, onFocus, codes, onDecide }: { r: ReviewRecord; 
         )}
       </div>
     </li>
+  )
+}
+
+function ResolveBar({ r, names, onResolve }: { r: ReviewRecord; names: [string, string]; onResolve: (d: Decision, reason: string) => void }) {
+  const [note, setNote] = useState('')
+  const reasonFor = (d: Decision) => note.trim() || (r.ta1 === d ? r.ta1Reason : r.ta2 === d ? r.ta2Reason : '') || 'Resolved by discussion'
+  return (
+    <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-xs dark:border-amber-900 dark:bg-amber-950/30" onClick={(e) => e.stopPropagation()}>
+      <p>
+        <b>Disagreement:</b> {names[0]} said <b>{r.ta1}</b>, {names[1]} said <b>{r.ta2}</b>. Decide together (or ask a third reviewer):
+      </p>
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+        <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="reason (optional, e.g. E2)" className="min-h-8 w-48 text-xs" />
+        {(['include', 'exclude', 'maybe'] as Decision[]).map((d) => (
+          <Button key={d} variant="ghost" className="min-h-8 text-xs" onClick={() => onResolve(d, reasonFor(d))}>
+            Final: {d}
+          </Button>
+        ))}
+      </div>
+    </div>
   )
 }
 

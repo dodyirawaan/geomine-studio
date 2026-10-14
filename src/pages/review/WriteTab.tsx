@@ -9,7 +9,7 @@ import { paperToBibtex } from '../../literature/bib'
 import { CITE_RE, parseBibtex } from '../../manuscript/bibtex'
 import { CITATION_STYLES, makeCiter, type CitationStyle } from '../../manuscript/citations'
 import { styleOf } from '../../manuscript/templates'
-import { limitationsText, methodsText, overviewText, writeManuscript } from '../../review/build'
+import { limitationsText, methodsText, reviewRefKeys, overviewText, writeManuscript } from '../../review/build'
 import { evidenceFacts, evidenceStats } from '../../review/evidence'
 import { readiness } from '../../review/readiness'
 import { REVIEW_REFS, type OutlineItem } from '../../review/methods'
@@ -33,7 +33,7 @@ export function WriteTab({ p, save }: { p: ReviewProject; save: Save }) {
   const style: CitationStyle = p.citationStyle ?? styleOf({ journal: p.journal as JournalId })
   const ready = !!papers && papers.length > 0 && papers.length === included
 
-  const bib = useMemo(() => parseBibtex([...(papers ?? []).map(paperToBibtex), ...m.refs.map((k) => REVIEW_REFS[k])].join('\n')), [papers, m.refs])
+  const bib = useMemo(() => parseBibtex([...(papers ?? []).map(paperToBibtex), ...reviewRefKeys(p, m).map((k) => REVIEW_REFS[k])].join('\n')), [papers, p, m])
   const citer = useMemo(() => makeCiter(style, bib, [...m.outline.map((o) => p.drafts[o.id] ?? '')]), [style, bib, m.outline, p.drafts])
 
   const setDraft = (id: string, text: string) => save((cur) => ({ drafts: { ...cur.drafts, [id]: text } }))
@@ -203,7 +203,7 @@ export function WriteTab({ p, save }: { p: ReviewProject; save: Save }) {
         )
       })}
 
-      <ReadinessCard checks={readiness(p, m, c, papers ?? [], m.refs)} />
+      <ReadinessCard checks={readiness(p, m, c, papers ?? [], reviewRefKeys(p, m))} />
 
       <Card title="Manuscript">
         <p className="text-sm text-stone-600 dark:text-stone-400">

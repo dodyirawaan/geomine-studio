@@ -8,6 +8,8 @@ export interface PrismaCounts {
   queries: number
   duplicates: number
   otherSources: number
+  /** Of the other sources: found by citation chasing. */
+  citationSearching: number
   screened: number
   excludedTA: number
   awaitingTA: number
@@ -38,6 +40,7 @@ export function prismaCounts(p: ReviewProject, needsFullText: boolean): PrismaCo
     queries: runs.length,
     duplicates: Math.max(0, identified - fromSearch.length),
     otherSources: records.filter((r) => r.manual).length,
+    citationSearching: records.filter((r) => r.manual && (r.via === 'backward' || r.via === 'forward')).length,
     screened: records.length,
     excludedTA,
     awaitingTA,
@@ -51,6 +54,11 @@ export function prismaCounts(p: ReviewProject, needsFullText: boolean): PrismaCo
 
 export function includedRecords(p: ReviewProject, needsFullText: boolean) {
   return p.records.filter((r) => r.ta === 'include' && (!needsFullText || r.ft === 'include'))
+}
+
+function otherLines(c: PrismaCounts): string[] {
+  const other = c.otherSources - c.citationSearching
+  return [...(c.citationSearching ? [`Citation searching (n = ${c.citationSearching})`] : []), ...(other ? [`Other sources (n = ${other})`] : [])]
 }
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -68,13 +76,13 @@ export function prismaSvg(c: PrismaCounts, needsFullText: boolean, label = 'PRIS
   const R = 430
   const bw = 330
   let y = 16
-  parts.push(stage(y, Math.max(92, 40 + (c.byDatabase.length + (c.otherSources ? 1 : 0)) * 18), 'Identification'))
+  parts.push(stage(y, Math.max(92, 40 + (c.byDatabase.length + otherLines(c).length) * 18), 'Identification'))
   const dbLines = c.byDatabase.map(([d, n]) => `  ${d} (n = ${n})`)
-  const idH = Math.max(92, 40 + (dbLines.length + (c.otherSources ? 1 : 0)) * 18)
-  parts.push(box(L, y, bw, idH, [`Records identified (n = ${c.identified})`, ...dbLines, ...(c.otherSources ? [`Other sources (n = ${c.otherSources})`] : [])], true))
+  const idH = Math.max(92, 40 + (dbLines.length + otherLines(c).length) * 18)
+  parts.push(box(L, y, bw, idH, [`Records identified (n = ${c.identified})`, ...dbLines, ...otherLines(c)], true))
   parts.push(box(R, y, bw, 70, ['Records removed before screening:', `  Duplicates (n = ${c.duplicates})`]))
   parts.push(arrow(L + bw, y + 35, R, y + 35))
-  const idBottom = Math.max(92, 40 + (c.byDatabase.length + (c.otherSources ? 1 : 0)) * 18)
+  const idBottom = Math.max(92, 40 + (c.byDatabase.length + otherLines(c).length) * 18)
   parts.push(arrow(L + bw / 2, y + idBottom, L + bw / 2, y + idBottom + 30))
   y += idBottom + 30
   const screenH = needsFullText ? 236 : 130

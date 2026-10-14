@@ -61,8 +61,8 @@ Protokol adalah "kontrak" review Anda dan harus ditetapkan **sebelum** screening
 
 1. Klik **Run search on OpenAlex**. Setiap string dijalankan; hasilnya digabung dan **duplikat dihapus otomatis**
    (berdasarkan DOI, ID OpenAlex, dan judul).
-2. Tambahkan paper penting dari *citation chasing* atau saran pakar lewat **Add a record by DOI** (dihitung sebagai
-   "other sources" di PRISMA).
+2. Tambahkan paper penting dari saran pakar lewat **Add a record by DOI** (dihitung sebagai "other sources" di PRISMA).
+   Untuk *citation chasing* yang sistematis, pakai kartu **Citation searching (snowballing)** setelah full text (lihat Langkah 4).
 3. **Tambahkan basis data lain** (sangat disarankan untuk Q1): jalankan string yang sama di **Scopus** atau **Web of Science**
    lewat akses kampus, ekspor hasilnya sebagai **BibTeX atau RIS (dengan abstrak)**, lalu impor di kartu *Add other databases*.
    Duplikat dengan OpenAlex digabung otomatis, dan setiap basis data muncul terpisah di diagram PRISMA dan teks Methods.
@@ -81,10 +81,40 @@ Protokol adalah "kontrak" review Anda dan harus ditetapkan **sebelum** screening
 > Di bagian Methods akan tertulis bahwa AI hanya memberi usulan dan semua keputusan dibuat oleh penulis — ini penting
 > untuk transparansi dan kebijakan AI jurnal.
 
+### Screening oleh dua reviewer (disarankan untuk systematic review Q1)
+
+1. Di kartu **Two independent reviewers**, isi nama kedua reviewer lalu klik **Turn on two-reviewer screening**.
+   Keputusan yang sudah ada dihitung sebagai keputusan Reviewer 1.
+2. Pilih **Screening in this browser as** Reviewer 1 atau 2. Setiap reviewer memutuskan **tanpa melihat** keputusan
+   reviewer lain maupun usulan AI (keduanya baru tampil setelah Anda memutuskan record itu).
+3. Reviewer yang tidak memakai aplikasi: klik **Download blind sheet**, kirim file CSV-nya (bisa dibuka di Excel),
+   minta diisi kolom *decision* (include/exclude/maybe) dan *reason* (E1, E2, …), lalu **Import filled sheet**.
+4. Keputusan yang sama otomatis menjadi final. Yang berbeda masuk ke filter **Disagreements to resolve** — putuskan
+   bersama (atau dengan reviewer ketiga) lewat tombol **Final: …**.
+5. Aplikasi menghitung **Cohen's kappa** dengan 95% CI dan tabel kesepakatan. Kappa > 0,6 umumnya dianggap baik;
+   kalau rendah di awal, diskusikan dan perjelas kriteria sebelum melanjutkan. Nilai ini otomatis masuk ke Methods
+   (Cohen, 1960; Landis & Koch, 1977).
+6. Bekerja sendiri? **Use AI suggestions as Reviewer 2** menjadikan AI sebagai screener kedua. Lakukan screening
+   Anda sendiri dulu tanpa melihat usulan AI. Methods akan menyebut bahwa screener kedua adalah model bahasa —
+   isi nama dan versi modelnya di tempat `[VERIFY: model name and version]`.
+
 ## 7. Langkah 4 — Full text (systematic & scoping)
 
 Buka setiap laporan yang lolos (tautan DOI / *open access*), pastikan memenuhi semua kriteria, lalu tandai
 **Eligible** atau **Exclude because…** dengan alasan. Alasan eksklusi muncul di diagram PRISMA.
+
+### Citation searching (snowballing)
+
+Setelah ada studi yang lolos full text, buka kembali **Search → Citation searching (snowballing)**:
+
+- **Backward** mengambil daftar pustaka studi yang lolos; **Forward** mengambil artikel yang mengutipnya (data sitasi
+  OpenAlex, gratis).
+- Hasilnya diurutkan berdasarkan berapa banyak studi terpilih yang terhubung (mis. `3×` = dikutip oleh tiga studi Anda).
+  Standarnya semua artikel baru ikut di-screening; ambang ≥ 2 boleh dipakai bila hasilnya terlalu banyak, dan otomatis
+  dilaporkan di Methods.
+- Klik **Add … records to screening**, lalu screening record baru itu seperti biasa. Ulangi putaran berikutnya
+  (opsi *only studies not chased before*) sampai tidak ada studi baru yang lolos.
+- Record ini tampil sebagai **Citation searching** di diagram PRISMA dan dijelaskan di Methods (Wohlin, 2014).
 
 ## 8. Langkah 5 — Extraction & quality
 

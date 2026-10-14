@@ -129,6 +129,71 @@ export async function searchAllWorks(
   return { total, works: works.slice(0, o.limit) }
 }
 
+const chunks = <T,>(xs: T[], n: number): T[][] => Array.from({ length: Math.ceil(xs.length / n) }, (_, i) => xs.slice(i * n, i * n + n))
+const shortId = (id: string) => id.replace('https://openalex.org/', '')
+
+/** Reference lists (OpenAlex work ids) of the given works, for backward citation chasing. */
+export async function referencesOf(ids: string[], apiKey?: string): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>()
+  for (const c of chunks(ids, 50)) {
+    const body = (await get('/works', { filter: `openalex:${c.join('|')}`, 'per-page': '50', select: 'id,referenced_works' }, apiKey)) as { results: { id: string; referenced_works?: string[] }[] }
+    for (const r of body.results) out.set(shortId(r.id), (r.referenced_works ?? []).map(shortId))
+  }
+  return out
+}
+
+/** Metadata of works by OpenAlex id (unknown ids are skipped). */
+export async function worksByIds(ids: string[], apiKey?: string, onProgress?: (done: number) => void): Promise<PaperMeta[]> {
+  const out: PaperMeta[] = []
+  for (const c of chunks(ids, 50)) {
+    const body = (await get('/works', { filter: `openalex:${c.join('|')}`, 'per-page': '50', select: SELECT }, apiKey)) as { results: RawWork[] }
+    out.push(...body.results.map(toMeta))
+    onProgress?.(out.length)
+  }
+  return out
+}
+
+/**
+ * Works citing any of the given works (forward citation chasing), most cited first, up to `limit`.
+ * Each result lists which of the given works it cites.
+ */
+export async function citingWorks(
+  ids: string[],
+  o: { fromYear?: number; toYear?: number; articlesOnly: boolean; limit: number; apiKey?: string },
+  onProgress?: (fetched: number, total: number) => void,
+): Promise<{ total: number; works: { meta: PaperMeta; cites: string[] }[] }> {
+  const seeds = new Set(ids)
+  const found = new Map<string, { meta: PaperMeta; cites: string[] }>()
+  let total = 0
+  for (const c of chunks(ids, 25)) {
+    const filters = [`cites:${c.join('|')}`]
+    if (o.fromYear || o.toYear) filters.push(`publication_year:${o.fromYear ?? ''}-${o.toYear ?? ''}`)
+    if (o.articlesOnly) filters.push('type:article|review')
+    let cursor = '*'
+    let fetched = 0
+    while (cursor && found.size < o.limit) {
+      const body = (await get('/works', { filter: filters.join(','), sort: 'cited_by_count:desc', 'per-page': '200', cursor, select: `${SELECT},referenced_works` }, o.apiKey)) as {
+        meta: { count: number; next_cursor: string | null }
+        results: (RawWork & { referenced_works?: string[] })[]
+      }
+      if (cursor === '*') total += body.meta.count
+      for (const w of body.results) {
+        const meta = toMeta(w)
+        const cites = (w.referenced_works ?? []).map(shortId).filter((x) => seeds.has(x))
+        const prev = found.get(meta.openalexId!)
+        if (prev) prev.cites = [...new Set([...prev.cites, ...cites])]
+        else if (found.size < o.limit) found.set(meta.openalexId!, { meta, cites })
+      }
+      fetched += body.results.length
+      onProgress?.(found.size, total)
+      if (!body.results.length) break
+      cursor = body.meta.next_cursor ?? ''
+      if (fetched >= body.meta.count) break
+    }
+  }
+  return { total, works: [...found.values()] }
+}
+
 /** Number of works matching a boolean title/abstract query, optionally restricted to review articles. */
 export async function countWorks(query: string, o: { fromYear?: number; reviewsOnly?: boolean; apiKey?: string } = {}): Promise<number> {
   const filters = [`title_and_abstract.search:${query.replace(/,/g, ' ').replace(/\*/g, '').trim()}`]

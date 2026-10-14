@@ -19,6 +19,7 @@ import { AnalysisTab } from './AnalysisTab'
 import { ExtractionTab } from './ExtractionTab'
 import { ReviewGuide } from './ReviewGuide'
 import { FullTextTab, ScreeningTab } from './ScreeningTab'
+import { SnowballCard } from './SnowballCard'
 import { WriteTab } from './WriteTab'
 
 export default function ReviewProjectPage() {
@@ -309,6 +310,7 @@ function SearchTab({ p, save }: { p: ReviewProject; save: Save }) {
         {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
       </Card>
       <ImportCard p={p} save={save} />
+      <SnowballCard p={p} save={save} />
       <Card title="Records">
         <div className="grid gap-3 sm:grid-cols-4">
           {[

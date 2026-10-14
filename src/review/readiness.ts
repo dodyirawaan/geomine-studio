@@ -2,6 +2,7 @@
 import { citedKeys } from '../manuscript/bibtex'
 import { countWords } from '../manuscript/templates'
 import type { Paper } from '../store/db'
+import { agreement } from './dual'
 import { evidenceStats } from './evidence'
 import type { ReviewMethod } from './methods'
 import type { PrismaCounts } from './prisma'
@@ -38,6 +39,11 @@ export function readiness(p: ReviewProject, m: ReviewMethod, c: PrismaCounts, pa
 
   return [
     { level: 'must', ok: c.awaitingTA === 0 && c.awaitingFT === 0, label: 'Screening finished', detail: c.awaitingTA || c.awaitingFT ? `${c.awaitingTA} records and ${c.awaitingFT} full texts still undecided` : undefined },
+    ...(m.screening && m.id === 'systematic'
+      ? [{ level: 'should' as const, ok: !!p.dual?.enabled && agreement(p.records).n > 0, label: 'Screening by two independent reviewers, with Cohen’s kappa', detail: p.dual?.enabled ? `${agreement(p.records).n} records decided by both` : 'single reviewer' }]
+      : []),
+    ...(p.dual?.enabled ? [{ level: 'must' as const, ok: agreement(p.records).conflicts === 0, label: 'Every disagreement between the reviewers resolved', detail: `${agreement(p.records).conflicts} open` }] : []),
+    ...(m.screening && m.fullText ? [{ level: 'should' as const, ok: (p.snowballs ?? []).length > 0, label: 'Citation searching (backward and forward snowballing) done', detail: (p.snowballs ?? []).length ? undefined : 'not yet' }] : []),
     { level: 'should', ok: c.included >= minStudies, label: `Enough included studies for a ${m.name.toLowerCase()} (≥ ${minStudies})`, detail: `${c.included} included` },
     { level: 'should', ok: dbs.size >= 2, label: 'Two or more databases searched (e.g. OpenAlex + Scopus or Web of Science)', detail: [...dbs].join(', ') },
     { level: 'must', ok: papers.length > 0 && papers.every((x) => x.matrix), label: 'Data extracted for every included study', detail: `${papers.filter((x) => x.matrix).length}/${papers.length}` },

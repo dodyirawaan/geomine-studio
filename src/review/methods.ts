@@ -197,6 +197,34 @@ export const REVIEW_REFS: Record<string, string> = {
   pages = {429--472},
   doi = {10.1177/1094428114562629}
 }`,
+  cohen1960: `@article{cohen1960,
+  author = {Cohen, Jacob},
+  title = {A coefficient of agreement for nominal scales},
+  journal = {Educational and Psychological Measurement},
+  year = {1960},
+  volume = {20},
+  number = {1},
+  pages = {37--46},
+  doi = {10.1177/001316446002000104}
+}`,
+  landis1977: `@article{landis1977,
+  author = {Landis, J. Richard and Koch, Gary G.},
+  title = {The measurement of observer agreement for categorical data},
+  journal = {Biometrics},
+  year = {1977},
+  volume = {33},
+  number = {1},
+  pages = {159--174},
+  doi = {10.2307/2529310}
+}`,
+  wohlin2014: `@inproceedings{wohlin2014,
+  author = {Wohlin, Claes},
+  title = {Guidelines for snowballing in systematic literature studies and a replication in software engineering},
+  booktitle = {Proceedings of the 18th International Conference on Evaluation and Assessment in Software Engineering},
+  year = {2014},
+  pages = {1--10},
+  doi = {10.1145/2601248.2601268}
+}`,
 }
 
 /** Quality-appraisal criteria for primary studies in mining geotechnics (each scored 0 = no, 1 = partly, 2 = yes). */

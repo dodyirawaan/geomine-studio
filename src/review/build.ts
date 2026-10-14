@@ -7,11 +7,55 @@ import { db, type Manuscript, type Paper } from '../store/db'
 import { bibliometrics } from './analysis'
 import { evidenceStats, evidenceStatsTable } from './evidence'
 import { QUALITY_CRITERIA, REVIEW_REFS, type ReviewMethod } from './methods'
+import { agreement, kappaLabel } from './dual'
 import type { PrismaCounts } from './prisma'
 import type { ReviewProject, ReviewRecord } from './types'
 
 const fmtDate = (t: number) => new Date(t).toISOString().slice(0, 10)
 const list = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`)
+
+/** Method references the project needs: the review type's, plus kappa and snowballing when used. */
+export function reviewRefKeys(p: ReviewProject, m: ReviewMethod): string[] {
+  const keys = [...m.refs]
+  if (p.dual?.enabled && p.records.some((r) => r.ta1 && r.ta2)) keys.push('cohen1960', 'landis1977')
+  if ((p.snowballs ?? []).some((s) => s.added > 0)) keys.push('wohlin2014')
+  return keys
+}
+
+/** Sentence on citation chasing and records from other sources. */
+function otherSourcesText(p: ReviewProject, c: PrismaCounts): string {
+  const runs = (p.snowballs ?? []).filter((s) => s.added > 0)
+  const other = c.otherSources - c.citationSearching
+  const parts: string[] = []
+  if (runs.length) {
+    const back = runs.filter((s) => s.direction === 'backward')
+    const fwd = runs.filter((s) => s.direction === 'forward')
+    const seeds = new Set(runs.flatMap((s) => s.seeds)).size
+    const how = [back.length ? 'backward (reference lists)' : '', fwd.length ? 'forward (citing works)' : ''].filter(Boolean).join(' and ')
+    const thresholds = (['backward', 'forward'] as const)
+      .map((d) => [d, Math.max(0, ...runs.filter((s) => s.direction === d).map((s) => s.minLinks))] as const)
+      .filter(([, k]) => k > 1)
+      .map(([d, k]) => `${d} candidates linked to at least ${k} included studies`)
+    parts.push(
+      ` Citation searching [@wohlin2014] was performed ${how} from the ${seeds} included stud${seeds === 1 ? 'y' : 'ies'} using OpenAlex citation links${runs.length > 2 ? ` in ${runs.length} rounds` : ''} (last on ${fmtDate(Math.max(...runs.map((s) => s.at)))})${thresholds.length ? `, retaining ${list(thresholds)}` : ''}; it identified ${c.citationSearching} additional record${c.citationSearching === 1 ? '' : 's'}, which were screened with the same criteria.`,
+    )
+  }
+  if (other > 0) parts.push(` A further ${other} record${other === 1 ? ' was' : 's were'} added from ${runs.length ? 'other sources (expert suggestion and hand searching)' : 'citation tracking and expert suggestion'}.`)
+  return parts.join('')
+}
+
+/** Sentence on who screened and how well the reviewers agreed. */
+function screeningByText(p: ReviewProject, aiUsed: boolean): string {
+  if (!p.dual?.enabled) return aiUsed ? ' An AI assistant proposed a screening decision with a reason for each record; every decision was checked and made by the authors.' : ''
+  const a = agreement(p.records)
+  if (!a.n) return ' Titles and abstracts were screened independently by two reviewers. [DATA NEEDED: screening agreement]'
+  const ai = p.records.some((r) => r.ta2Ai)
+  const k = `Cohen’s κ = ${a.kappa.toFixed(2)}, 95% CI ${a.ci[0].toFixed(2)}–${a.ci[1].toFixed(2)}; ${(a.po * 100).toFixed(1)}% agreement over ${a.n} records`
+  const who = ai
+    ? ` Each record was screened by one reviewer and independently classified by a large language model ([VERIFY: model name and version]) used as a second screener, blind to the reviewer’s decision.`
+    : ` Titles and abstracts were screened independently by two reviewers, each blind to the other’s decisions.`
+  return `${who} Agreement was ${kappaLabel(a.kappa)} [@landis1977] (${k}) [@cohen1960]. ${a.conflicts + a.resolved} disagreement${a.conflicts + a.resolved === 1 ? ' was' : 's were'} resolved by discussion${ai ? ' and the reviewer’s judgement' : ' or by a third reviewer'}.${a.conflicts ? ` [DATA NEEDED: ${a.conflicts} disagreements still unresolved]` : ''}`
+}
 
 export function methodsText(p: ReviewProject, m: ReviewMethod, c: PrismaCounts): string {
   const pr = p.protocol
@@ -36,12 +80,12 @@ export function methodsText(p: ReviewProject, m: ReviewMethod, c: PrismaCounts):
     `## Protocol and research questions\n\n${guideline} The review addressed ${pr.questions.length} question${pr.questions.length === 1 ? '' : 's'}: ${pr.questions.map((x, i) => `(RQ${i + 1}) ${q(x)}?`.replace(/\?\?$/, '?')).join('; ')}${framework.length ? ` The scope was defined by the ${m.framework.name} framework (${framework.join('; ')}).` : ''}`,
     `## Search strategy\n\nThe OpenAlex database, which indexes Crossref, PubMed, institutional repositories and publisher records, was searched on ${date} using ${p.searches.length} Boolean search string${p.searches.length === 1 ? '' : 's'} applied to titles and abstracts: ${queries.join('; ')}. The search was limited to ${pr.articlesOnly ? 'journal articles and reviews ' : ''}${years}${pr.language ? ` in ${pr.language}` : ''}.${
     imports.length ? ` In addition, ${imports.map((x) => `${x.database} (${x.fetched.toLocaleString()} records${x.query ? `; ${x.query}` : ''}; exported on ${fmtDate(x.at)})`).join(' and ')} ${imports.length === 1 ? 'was' : 'were'} searched with equivalent strings and the exports imported.` : ''
-  }${c.otherSources ? ` A further ${c.otherSources} record${c.otherSources === 1 ? ' was' : 's were'} identified through citation tracking and expert suggestion.` : ''} Records were de-duplicated by DOI, OpenAlex identifier and normalised title, removing ${c.duplicates} duplicate${c.duplicates === 1 ? '' : 's'}.`,
+  }${otherSourcesText(p, c)} Records were de-duplicated by DOI, OpenAlex identifier and normalised title, removing ${c.duplicates} duplicate${c.duplicates === 1 ? '' : 's'}.`,
   ]
   if (m.screening) {
     parts.push(
       `## Eligibility criteria and study selection\n\nStudies were included when they met all inclusion criteria (${pr.inclusion.join('; ')}) and excluded when any exclusion criterion applied (${pr.exclusion.join('; ')}). Titles and abstracts of ${c.screened} records were screened, of which ${c.excludedTA} were excluded.${
-        aiUsed ? ' An AI assistant proposed a screening decision with a reason for each record; every decision was checked and made by the authors.' : ''
+        screeningByText(p, aiUsed)
       }${
         m.fullText
           ? ` The full texts of ${c.soughtFT} reports were assessed for eligibility and ${c.excludedFT} were excluded${c.ftReasons.length ? ` (${c.ftReasons.map(([r, n]) => `${r}: ${n}`).join('; ')})` : ''}.`
@@ -124,6 +168,7 @@ export function limitationsText(p: ReviewProject, m: ReviewMethod, papers: Paper
       ? `The search relied on a single database (${dbs[0]}); although it indexes most journals in the field, some studies indexed only elsewhere may have been missed.`
       : `The search covered ${list(dbs)}; studies indexed only in other databases or in grey literature may still have been missed.`,
     p.protocol.language ? `Only studies in ${p.protocol.language} were considered, so work published in other languages — notably the large Chinese-language literature on mining — is under-represented.` : '',
+    m.screening && !p.dual?.enabled ? 'Records were screened by a single reviewer, which increases the risk that eligible studies were missed.' : '',
     p.records.some((r) => r.ai) ? 'Title and abstract screening was supported by AI suggestions; all decisions were checked by the authors, but residual misclassification cannot be excluded.' : '',
     abstractsOnly ? `Data for ${abstractsOnly} of the ${papers.length} included studies were extracted from abstracts rather than full texts${fullText ? ` (${fullText} from full texts)` : ''}, which limits the detail available for those studies.` : '',
     m.quality ? '' : 'In line with the review type, the quality of the included studies was not formally appraised.',
@@ -167,7 +212,7 @@ export async function writeManuscript(p: ReviewProject, m: ReviewMethod, papers:
     ...m.outline.map((o) => ({ id: crypto.randomUUID(), role: 'body' as const, title: o.title, content: p.drafts[o.id] ?? '', hint: o.brief })),
     ...back.map((s) => (/data availability/i.test(s.title) ? { ...s, content: 'All studies analysed in this review are published and cited; the screening log and extraction table are available as supplementary material.' } : s)),
   ]
-  const bibtex = [...papers.map(paperToBibtex), ...m.refs.map((k) => REVIEW_REFS[k])].join('\n\n') + '\n'
+  const bibtex = [...papers.map(paperToBibtex), ...reviewRefKeys(p, m).map((k) => REVIEW_REFS[k])].join('\n\n') + '\n'
   const now = Date.now()
   const manuscript: Manuscript = existing
     ? { ...existing, title: p.title, sections, bibtex, updatedAt: now }
@@ -186,7 +231,7 @@ export function screeningCsv(p: ReviewProject): string {
     const s = v == null ? '' : String(v)
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
   }
-  const head = ['id', 'title', 'year', 'venue', 'doi', 'queries', 'title_abstract_decision', 'title_abstract_reason', 'ai_suggestion', 'ai_reason', 'full_text_decision', 'full_text_reason']
-  const rows = p.records.map((r) => [r.id, r.meta.title, r.meta.year, r.meta.venue, r.meta.doi, r.manual ? 'manual' : r.queries.map((q) => q + 1).join(' '), r.ta, r.taReason, r.ai?.decision, r.ai?.reason, r.ft, r.ftReason].map(esc).join(','))
+  const head = ['id', 'title', 'year', 'venue', 'doi', 'queries', 'source', 'linked_included_studies', 'reviewer1_decision', 'reviewer1_reason', 'reviewer2_decision', 'reviewer2_reason', 'reviewer2_is_ai', 'title_abstract_decision', 'title_abstract_reason', 'resolved_disagreement', 'ai_suggestion', 'ai_reason', 'full_text_decision', 'full_text_reason']
+  const rows = p.records.map((r) => [r.id, r.meta.title, r.meta.year, r.meta.venue, r.meta.doi, r.manual ? 'manual' : r.queries.map((q) => q + 1).join(' '), r.via ?? (r.manual ? 'manual' : 'database'), r.links?.length, r.ta1, r.ta1Reason, r.ta2, r.ta2Reason, r.ta2Ai ? 'yes' : '', r.ta, r.taReason, r.taResolved ? 'yes' : '', r.ai?.decision, r.ai?.reason, r.ft, r.ftReason].map(esc).join(','))
   return [head.join(','), ...rows].join('\n')
 }

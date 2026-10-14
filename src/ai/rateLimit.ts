@@ -28,7 +28,7 @@ export function rateLimitFrom(provider: string, body: unknown, headers?: Headers
   const quota = details.find((d) => String(d['@type']).endsWith('QuotaFailure')) as { violations?: { quotaId?: string; quotaMetric?: string }[] } | undefined
   const ids = (quota?.violations ?? []).map((v) => `${v.quotaId ?? ''} ${v.quotaMetric ?? ''}`).join(' ')
   const message = err?.message ?? 'Too many requests'
-  const daily = /PerDay|per day|daily/i.test(ids) || /per day|daily/i.test(message) || /insufficient_quota|billing|credit/i.test(message)
+  const daily = /PerDay|per[- ]day|daily/i.test(ids) || /per[- ]day|daily/i.test(message) || /insufficient_quota|billing|credit/i.test(message)
   const retryAfter = seconds(retry) ?? seconds(headers?.get('retry-after')) ?? seconds(message.match(/retry in ([\d.]+)s/i)?.[1])
   return new RateLimitError(`${provider} 429: ${message}`, retryAfter, daily)
 }

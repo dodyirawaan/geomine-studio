@@ -29,6 +29,8 @@ export const db = new Dexie('geomine-studio') as Dexie & {
   manuscripts: EntityTable<Manuscript, 'id'>
   papers: EntityTable<Paper, 'id'>
   chunks: EntityTable<Chunk, 'id'>
+  runs: EntityTable<PipelineRun, 'manuscriptId'>
+  snapshots: EntityTable<Snapshot, 'id'>
 }
 
 db.version(1).stores({
@@ -43,6 +45,11 @@ db.version(2).stores({
 db.version(3).stores({
   papers: 'id, doi, addedAt',
   chunks: '++id, paperId',
+})
+
+db.version(4).stores({
+  runs: 'manuscriptId',
+  snapshots: '++id, manuscriptId, createdAt',
 })
 
 export type SectionRole = 'highlights' | 'abstract' | 'keywords' | 'body' | 'back'
@@ -73,6 +80,8 @@ export interface Manuscript {
   sections: ManuscriptSection[]
   /** Raw BibTeX; entries are parsed on demand. */
   bibtex: string
+  /** Manual Q1 checklist items the author has ticked. */
+  checklist?: Record<string, boolean>
   createdAt: number
   updatedAt: number
 }
@@ -114,4 +123,40 @@ export interface Chunk {
   paperId: string
   page: number
   text: string
+}
+
+export interface ReviewComment {
+  id: string
+  severity: 'major' | 'minor'
+  /** Section title the comment is about, or "General". */
+  section: string
+  quote?: string
+  comment: string
+  suggestion?: string
+  /** Selected for the next revision round. */
+  selected: boolean
+  response?: string
+}
+
+/** AI proposals for one manuscript, kept until the author accepts or discards them. */
+export interface PipelineRun {
+  manuscriptId: string
+  idea: string
+  outline?: string
+  /** Proposed section text by section id (drafts and revisions). */
+  proposals: Record<string, { text: string; kind: 'draft' | 'revision'; createdAt: number }>
+  review: ReviewComment[]
+  responseLetter?: string
+  updatedAt: number
+}
+
+/** A saved copy of a manuscript's text, taken before AI changes are applied or on request. */
+export interface Snapshot {
+  id?: number
+  manuscriptId: string
+  label: string
+  title: string
+  sections: ManuscriptSection[]
+  bibtex: string
+  createdAt: number
 }

@@ -9,7 +9,7 @@ const ROADMAP = [
   { phase: 2, title: 'Manuscript editor & templates', items: 'IMRaD editor with AI co-author per section, Q1 journal templates, DOCX + LaTeX + BibTeX export', done: true },
   { phase: 3, title: 'Literature', items: 'OpenAlex search, local library with PDFs, Crossref DOI verification, AI literature matrix, ask-your-library (BM25 RAG)', done: true },
   { phase: 4, title: 'Methods library', items: 'RMR89, Q, GSI, Hoek–Brown/Erm/MC fit, Kirsch + rockburst criteria, GRC, dynamic support, stability graph → Methods text', done: true },
-  { phase: 5, title: 'Automation pipeline', items: 'Idea → draft → Reviewer 2 → revision, consistency checker, Q1 checklist', done: false },
+  { phase: 5, title: 'Automation pipeline', items: 'Idea → outline → draft → Reviewer 2 → revision + response letter, consistency checker, Q1 checklist, snapshots', done: true },
   { phase: 6, title: 'Sync & polish', items: 'Private GitHub sync, version history, cost tracking, offline PWA', done: false },
 ]
 

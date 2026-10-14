@@ -96,6 +96,9 @@ export default function ManuscriptsPage() {
                     {j ? j.id.toUpperCase() : 'no journal'} · {words.toLocaleString()} words · {new Date(m.updatedAt).toLocaleDateString()}
                   </span>
                   <span className="flex gap-2 text-xs">
+                    <Link to={`/manuscripts/${m.id}/workspace`} className="text-stone-500 hover:text-stone-800 dark:hover:text-stone-200">
+                      Workspace
+                    </Link>
                     <button className="text-stone-500 hover:text-stone-800 dark:hover:text-stone-200" onClick={() => duplicate(m.id)}>
                       Duplicate
                     </button>

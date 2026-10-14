@@ -46,6 +46,15 @@ Many publishers (including Elsevier) do not share abstracts with OpenAlex or Cro
 
 Hoek–Brown results were checked against RocLab values, and the closed-form Mohr–Coulomb fit against a numerical least-squares fit. DOIs of the method references were verified against Crossref.
 
+## Features (Phase 5)
+
+Each manuscript has a **Workspace** (from the editor or the manuscript list):
+
+- **Pipeline**: idea → outline (title options, research questions, novelty statement, notes per section) → draft all sections (body first, then abstract, highlights, keywords) → Reviewer 2 with structured comments → revision of the selected comments with a *Response to reviewers* letter. AI output is kept as proposals with a side-by-side view; nothing changes until you accept it.
+- **Consistency check** (rule-based, live): unresolved citations and placeholders, figure/table numbering and order, abbreviations defined before use (abstract and main text separately), unit formatting, mixed British/American spelling, repeated words, long sentences, and values in the Abstract/Highlights/Conclusions that do not appear in the main text. An optional AI pass looks for contradictions between sections.
+- **Q1 checklist**: automatic items (structure, highlights, declarations, integrity checks, recent-literature share) plus manual submission items, per publisher.
+- **History**: snapshots saved automatically before AI text is accepted or a version is restored, plus manual snapshots; restore any of the last 50.
+
 ## Privacy model
 
 This is a static site with no backend. Your keys, chats, manuscripts and PDFs never leave your browser except for the requests you make to the AI provider you chose and the metadata lookups sent to OpenAlex and Crossref (search terms, DOIs and reference titles). Use API keys with a spending limit.
@@ -68,5 +77,5 @@ Push to `main`. The workflow in `.github/workflows/deploy.yml` builds and publis
 2. ✅ Manuscript editor & Q1 templates — IMRaD editor, DOCX + LaTeX + BibTeX export
 3. ✅ Literature — OpenAlex/Crossref search, DOI verification, literature matrix, PDF RAG
 4. ✅ Methods library — RMR/Q/GSI/Hoek–Brown, rockburst criteria, support design calculators
-5. Automation pipeline — idea → draft → Reviewer 2 → revision, consistency checker, Q1 checklist
+5. ✅ Automation pipeline — idea → draft → Reviewer 2 → revision, consistency checker, Q1 checklist
 6. Sync & polish — private GitHub sync, version history, cost tracking, PWA

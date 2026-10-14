@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard'
 import EditorPage from './pages/Editor'
 import LiteraturePage from './pages/literature/Literature'
 import MethodsPage from './pages/Methods'
+import WorkspacePage from './pages/workspace/Workspace'
 import ManuscriptsPage from './pages/Manuscripts'
 import SettingsPage from './pages/Settings'
 import { useVault } from './store/vault'
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/" element={<Page><Dashboard /></Page>} />
           <Route path="/manuscripts" element={<Page><ManuscriptsPage /></Page>} />
           <Route path="/manuscripts/:id" element={<EditorPage />} />
+          <Route path="/manuscripts/:id/workspace" element={<Page><WorkspacePage /></Page>} />
           <Route path="/literature" element={<Page><LiteraturePage /></Page>} />
           <Route path="/methods" element={<Page><MethodsPage /></Page>} />
           <Route path="/chat" element={<ChatPage />} />

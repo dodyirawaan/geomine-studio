@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { JOURNALS, type JournalId } from '../ai/prompts'
 import { AssistPanel } from '../components/AssistPanel'
 import { LibraryImport, VerifyReferences } from '../components/ReferenceTools'
@@ -57,7 +57,8 @@ export default function EditorPage() {
     setSaved(false)
   }, [])
 
-  const [pane, setPane] = useState<Pane>('')
+  const [params] = useSearchParams()
+  const [pane, setPane] = useState<Pane>(() => params.get('section') ?? '')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [assistOpen, setAssistOpen] = useState(false)
   const [undo, setUndo] = useState<{ sectionId: string; content: string } | null>(null)
@@ -184,6 +185,13 @@ export default function EditorPage() {
             ))}
           </div>
         </details>
+        <Link
+          to={`/manuscripts/${doc.id}/workspace`}
+          className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-stone-100 dark:border-stone-700 dark:bg-stone-900 dark:hover:bg-stone-800"
+          title="Automated pipeline, consistency check, Q1 checklist and version history"
+        >
+          Workspace
+        </Link>
         <Button variant="ghost" className="xl:hidden" onClick={() => setAssistOpen(!assistOpen)}>
           ✨ AI
         </Button>

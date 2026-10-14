@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { buildSystemPrompt, JOURNALS, MODES, type JournalId, type ModeId } from '../ai/prompts'
+import { buildSystemPrompt, journalsByTopic, MODES, type JournalId, type ModeId } from '../ai/prompts'
 import { PROVIDER_IDS, PROVIDERS } from '../ai/providers'
 import type { ChatMessage, ProviderId } from '../ai/types'
 import { Markdown } from '../components/Markdown'
@@ -205,10 +205,14 @@ export default function ChatPage() {
           </Select>
           <Select value={journal} onChange={(e) => setJournal(e.target.value as JournalId | '')} title="Target journal">
             <option value="">No target journal</option>
-            {JOURNALS.map((j) => (
-              <option key={j.id} value={j.id}>
-                {j.name}
-              </option>
+            {journalsByTopic().map(([topic, list]) => (
+              <optgroup key={topic} label={topic}>
+                {list.map((j) => (
+                  <option key={j.id} value={j.id}>
+                    {j.name}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </Select>
           <Select value={provider} onChange={(e) => update({ provider: e.target.value as ProviderId })} title="Provider">

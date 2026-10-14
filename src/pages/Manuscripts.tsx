@@ -2,7 +2,7 @@ import { FileText } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { JOURNALS, type JournalId } from '../ai/prompts'
+import { JOURNALS, journalsByTopic, type JournalId } from '../ai/prompts'
 import { Button, Card, Input, Label, PageHeader, Select } from '../components/ui'
 import { ARTICLE_TYPES, countWords, createManuscript } from '../manuscript/templates'
 import { db } from '../store/db'
@@ -45,10 +45,14 @@ export default function ManuscriptsPage() {
           <label>
             <Label>Target journal</Label>
             <Select value={journal} onChange={(e) => setJournal(e.target.value as JournalId | '')}>
-              {JOURNALS.map((j) => (
-                <option key={j.id} value={j.id}>
-                  {j.name} ({j.publisher})
-                </option>
+              {journalsByTopic().map(([topic, list]) => (
+                <optgroup key={topic} label={topic}>
+                  {list.map((j) => (
+                    <option key={j.id} value={j.id}>
+                      {j.name} ({j.publisher})
+                    </option>
+                  ))}
+                </optgroup>
               ))}
               <option value="">Other / undecided (Elsevier layout)</option>
             </Select>
@@ -89,7 +93,7 @@ export default function ManuscriptsPage() {
                     {m.title || 'Untitled'}
                   </Link>
                   <span className="text-xs text-stone-500">
-                    {j ? j.id.toUpperCase() : 'no journal'} · {words.toLocaleString()} words · {new Date(m.updatedAt).toLocaleDateString()}
+                    {j ? j.abbr : 'no journal'} · {words.toLocaleString()} words · {new Date(m.updatedAt).toLocaleDateString()}
                   </span>
                   <span className="flex gap-2 text-xs">
                     <Link to={`/manuscripts/${m.id}/workspace`} className="text-stone-500 hover:text-stone-800 dark:hover:text-stone-200">

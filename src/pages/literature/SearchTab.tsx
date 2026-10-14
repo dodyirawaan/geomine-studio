@@ -18,6 +18,9 @@ const PRESETS = [
   'water-conducting fractured zone height prediction',
   'CO2 mineralization fly ash backfill',
   'critical slowing down rock failure',
+  'deep mining high in-situ stress',
+  'deep mine heat hazard temperature',
+  'deep roadway creep large deformation',
 ]
 
 export default function SearchTab({ papers }: { papers: Paper[] }) {

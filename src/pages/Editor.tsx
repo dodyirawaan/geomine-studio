@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { JOURNALS, type JournalId } from '../ai/prompts'
+import { journalsByTopic, type JournalId } from '../ai/prompts'
 import { AssistPanel } from '../components/AssistPanel'
 import { LibraryImport, VerifyReferences } from '../components/ReferenceTools'
 import { Markdown } from '../components/Markdown'
 import { Button, Input, Label, Select } from '../components/ui'
 import { downloadBlob, downloadText, slug } from '../lib/download'
-import { citedKeys, CITE_RE, citeLabel, formatCitation, parseBibtex, type BibEntry } from '../manuscript/bibtex'
+import { citedKeys, CITE_RE, citeLabel, parseBibtex, type BibEntry } from '../manuscript/bibtex'
+import { CITATION_STYLES, type CitationStyle, type Citer } from '../manuscript/citations'
 import { exportMarkdown } from '../manuscript/exportMarkdown'
-import { countWords, highlightList, newSection, publisherOf } from '../manuscript/templates'
+import { citerFor, countWords, highlightList, newSection, publisherOf, styleOf } from '../manuscript/templates'
 import { db, type Author, type Manuscript, type ManuscriptSection, type SectionRole } from '../store/db'
 
 type Pane = 'authors' | 'references' | string
@@ -64,6 +65,7 @@ export default function EditorPage() {
   const [undo, setUndo] = useState<{ sectionId: string; content: string } | null>(null)
 
   const entries = useMemo(() => parseBibtex(doc?.bibtex ?? ''), [doc?.bibtex])
+  const citer = useMemo(() => (doc ? citerFor(doc) : null), [doc])
 
   if (doc === undefined) return <p className="p-6 text-sm text-stone-500">Loading…</p>
   if (doc === null)
@@ -153,10 +155,14 @@ export default function EditorPage() {
           className="w-auto max-w-40"
           title="Target journal (changes the AI's conventions and the LaTeX class)"
         >
-          {JOURNALS.map((j) => (
-            <option key={j.id} value={j.id}>
-              {j.id.toUpperCase()}
-            </option>
+          {journalsByTopic().map(([topic, list]) => (
+            <optgroup key={topic} label={topic}>
+              {list.map((j) => (
+                <option key={j.id} value={j.id}>
+                  {j.abbr}
+                </option>
+              ))}
+            </optgroup>
           ))}
           <option value="">Other</option>
         </Select>
@@ -268,12 +274,13 @@ export default function EditorPage() {
           {activePane === 'authors' ? (
             <AuthorsPane authors={doc.authors} onChange={(authors) => change((m) => ({ ...m, authors }))} />
           ) : activePane === 'references' ? (
-            <ReferencesPane doc={doc} entries={entries} onChange={(bibtex) => change((m) => ({ ...m, bibtex }))} />
+            <ReferencesPane doc={doc} entries={entries} onChange={(bibtex) => change((m) => ({ ...m, bibtex }))} onStyle={(citationStyle) => change((m) => ({ ...m, citationStyle }))} />
           ) : section ? (
             <SectionPane
               key={section.id}
               section={section}
               entries={entries}
+              citer={citer!}
               canUndo={undo?.sectionId === section.id}
               onUndo={() => {
                 if (undo) updateSection(undo.sectionId, { content: undo.content })
@@ -308,6 +315,7 @@ export default function EditorPage() {
 function SectionPane({
   section,
   entries,
+  citer,
   canUndo,
   onUndo,
   onChange,
@@ -317,6 +325,7 @@ function SectionPane({
 }: {
   section: ManuscriptSection
   entries: BibEntry[]
+  citer: Citer
   canUndo: boolean
   onUndo: () => void
   onChange: (patch: Partial<ManuscriptSection>) => void
@@ -326,7 +335,6 @@ function SectionPane({
 }) {
   const [preview, setPreview] = useState(false)
   const ta = useRef<HTMLTextAreaElement>(null)
-  const byKey = useMemo(() => new Map(entries.map((e) => [e.key, e])), [entries])
   const movable = section.role === 'body' || section.role === 'back'
 
   function insert(text: string) {
@@ -341,7 +349,7 @@ function SectionPane({
     })
   }
 
-  const previewText = section.content.replace(CITE_RE, (_, g: string) => formatCitation(g, byKey))
+  const previewText = section.content.replace(CITE_RE, (_, g: string) => citer.cite(g))
 
   return (
     <div className="mx-auto max-w-3xl space-y-3 p-4">
@@ -505,7 +513,7 @@ function swap<T>(list: T[], i: number, j: number): T[] {
   return next
 }
 
-function ReferencesPane({ doc, entries, onChange }: { doc: Manuscript; entries: BibEntry[]; onChange: (bib: string) => void }) {
+function ReferencesPane({ doc, entries, onChange, onStyle }: { doc: Manuscript; entries: BibEntry[]; onChange: (bib: string) => void; onStyle: (s: CitationStyle) => void }) {
   const cited = citedKeys(doc.sections.map((s) => s.content))
   const known = new Set(entries.map((e) => e.key))
   const missing = [...cited].filter((k) => !known.has(k))
@@ -518,6 +526,17 @@ function ReferencesPane({ doc, entries, onChange }: { doc: Manuscript; entries: 
         Paste BibTeX exported from Zotero, Mendeley, Google Scholar or a DOI lookup. Cite in any section with <code>[@key]</code> or{' '}
         <code>[@key1; @key2]</code>. Only cited entries appear in the exported reference list.
       </p>
+      <label className="block rounded-md border border-stone-200 p-3 dark:border-stone-800">
+        <Label hint="used by the preview and by Word, LaTeX and Markdown exports">Citation style</Label>
+        <Select value={styleOf(doc)} onChange={(e) => onStyle(e.target.value as CitationStyle)}>
+          {CITATION_STYLES.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.label} — {c.example}
+            </option>
+          ))}
+        </Select>
+        <span className="mt-1 block text-xs text-stone-500">Check the journal's Guide for Authors; the LaTeX export switches to the matching bibliography style.</span>
+      </label>
       <LibraryImport bibtex={doc.bibtex} entries={entries} missing={missing} onChange={onChange} />
       <VerifyReferences bibtex={doc.bibtex} entries={entries} onChange={onChange} />
       <textarea

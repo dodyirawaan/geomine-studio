@@ -1,6 +1,6 @@
 import type { Manuscript } from '../store/db'
-import { CITE_RE, citedKeys, formatCitation, formatReference, parseBibtex, sortedReferences } from './bibtex'
-import { highlightList, keywordList } from './templates'
+import { CITE_RE } from './bibtex'
+import { citerFor, highlightList, keywordList } from './templates'
 
 /** Section text sits under a level-2 heading, so its own headings move down one level. */
 function demote(text: string): string {
@@ -9,9 +9,8 @@ function demote(text: string): string {
 
 /** Whole manuscript as one Markdown file, citations resolved to author–year. */
 export function exportMarkdown(m: Manuscript, resolveCitations = true): string {
-  const entries = parseBibtex(m.bibtex)
-  const byKey = new Map(entries.map((e) => [e.key, e]))
-  const cite = (t: string) => (resolveCitations ? t.replace(CITE_RE, (_, g: string) => formatCitation(g, byKey)) : t)
+  const citer = citerFor(m)
+  const cite = (t: string) => (resolveCitations ? t.replace(CITE_RE, (_, g: string) => citer.cite(g)) : t)
   const out: string[] = [`# ${m.title || 'Untitled manuscript'}`]
 
   const authors = m.authors.filter((a) => a.name.trim())
@@ -30,7 +29,7 @@ export function exportMarkdown(m: Manuscript, resolveCitations = true): string {
     else if (s.role === 'back' && s.content.trim()) out.push(`## ${s.title}`, cite(demote(s.content.trim())))
   }
 
-  const refs = sortedReferences(entries, citedKeys(m.sections.map((s) => s.content)))
-  if (refs.length && resolveCitations) out.push('## References', refs.map((e) => `- ${formatReference(e)}`).join('\n'))
+  const refs = citer.references
+  if (refs.length && resolveCitations) out.push('## References', refs.map((e) => (citer.style === 'numeric' ? `${citer.label(e)}${citer.formatText(e, true)}` : `- ${citer.formatText(e, true)}`)).join('\n\n'))
   return out.filter(Boolean).join('\n\n') + '\n'
 }

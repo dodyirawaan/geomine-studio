@@ -22,10 +22,11 @@ import {
 import type { List, PhrasingContent, RootContent, Table as MdTable } from 'mdast'
 import { JOURNALS } from '../ai/prompts'
 import type { Manuscript } from '../store/db'
-import { CITE_RE, citedKeys, formatCitation, formatReference, parseBibtex, sortedReferences, type BibEntry } from './bibtex'
+import { CITE_RE } from './bibtex'
+import type { Citer } from './citations'
 import { parseMarkdown, SectionCounter, subLevel } from './markdown'
 import { latexToOmml } from './omml'
-import { highlightList, keywordList } from './templates'
+import { citerFor, highlightList, keywordList } from './templates'
 
 interface Fmt {
   bold?: boolean
@@ -36,9 +37,9 @@ interface Fmt {
 
 class DocxBuilder {
   private eq = 0
-  private byKey: Map<string, BibEntry>
-  constructor(byKey: Map<string, BibEntry>) {
-    this.byKey = byKey
+  private citer: Citer
+  constructor(citer: Citer) {
+    this.citer = citer
   }
 
   inline(nodes: PhrasingContent[], fmt: Fmt = {}): ParagraphChild[] {
@@ -85,7 +86,7 @@ class DocxBuilder {
     let last = 0
     for (const m of text.matchAll(CITE_RE)) {
       if (m.index! > last) out.push(this.run(text.slice(last, m.index), fmt))
-      out.push(this.run(formatCitation(m[1], this.byKey), fmt))
+      out.push(this.run(this.citer.cite(m[1]), fmt))
       last = m.index! + m[0].length
     }
     if (last < text.length) out.push(this.run(text.slice(last), fmt))
@@ -197,9 +198,8 @@ class DocxBuilder {
 }
 
 export async function exportDocx(m: Manuscript): Promise<Blob> {
-  const entries = parseBibtex(m.bibtex)
-  const byKey = new Map(entries.map((e) => [e.key, e]))
-  const b = new DocxBuilder(byKey)
+  const citer = citerFor(m)
+  const b = new DocxBuilder(citer)
   const children: (Paragraph | Table)[] = []
   const heading1 = (text: string) => new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(text)] })
 
@@ -259,11 +259,18 @@ export async function exportDocx(m: Manuscript): Promise<Blob> {
     children.push(...b.blocks(parseMarkdown(s.content).children, null))
   }
 
-  const cited = citedKeys(m.sections.map((s) => s.content))
-  const refs = sortedReferences(entries, cited)
+  const refs = citer.references
   if (refs.length) {
     children.push(heading1('References'))
-    refs.forEach((e) => children.push(new Paragraph({ indent: { left: 720, hanging: 720 }, children: [new TextRun(formatReference(e))] })))
+    refs.forEach((e) =>
+      children.push(
+        new Paragraph({
+          indent: { left: 720, hanging: 720 },
+          spacing: { after: 80 },
+          children: [new TextRun(citer.label(e)), ...citer.format(e).map((seg) => new TextRun({ text: seg.text, italics: seg.italic }))],
+        }),
+      ),
+    )
   }
 
   const journal = JOURNALS.find((j) => j.id === m.journal)

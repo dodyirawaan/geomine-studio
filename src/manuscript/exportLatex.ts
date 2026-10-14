@@ -5,7 +5,7 @@ import { JOURNALS } from '../ai/prompts'
 import type { Author, Manuscript } from '../store/db'
 import { CITE_RE, citeKeys } from './bibtex'
 import { parseMarkdown, subLevel } from './markdown'
-import { highlightList, keywordList, publisherOf } from './templates'
+import { highlightList, keywordList, publisherOf, styleOf } from './templates'
 
 // pdflatex cannot typeset these Unicode characters in text mode. Math symbols are grouped into one $…$ run
 // so that "σ₁" becomes $\sigma_{1}$ rather than two adjacent math shifts.
@@ -40,12 +40,15 @@ export function escapeLatex(s: string): string {
     })
 }
 
+// Set by manuscriptLatex() for the chosen citation style.
+let citeCmd = 'citep'
+
 function textWithCitations(text: string): string {
   let out = ''
   let last = 0
   for (const m of text.matchAll(CITE_RE)) {
     out += escapeLatex(text.slice(last, m.index))
-    out += `\\citep{${citeKeys(m[1]).join(',')}}`
+    out += `\\${citeCmd}{${citeKeys(m[1]).join(',')}}`
     last = m.index! + m[0].length
   }
   return out + escapeLatex(text.slice(last))
@@ -164,7 +167,8 @@ function elsevier(m: Manuscript): string {
     })
     .join('\n')
   const hl = highlightList(m)
-  return `\\documentclass[preprint,12pt,authoryear]{elsarticle}
+  const style = styleOf(m)
+  return `\\documentclass[preprint,12pt,${style === 'numeric' ? 'number' : 'authoryear'}]{elsarticle}
 
 \\usepackage{amsmath,amssymb}
 \\usepackage{graphicx}
@@ -199,7 +203,7 @@ ${bodyTex(m)}
 
 ${backTex(m, (t) => `\\section*{${escapeLatex(t)}}`)}
 
-\\bibliographystyle{elsarticle-harv}
+\\bibliographystyle{${style === 'numeric' ? 'elsarticle-num' : style === 'apa' ? 'apalike' : 'elsarticle-harv'}}
 \\bibliography{references}
 
 \\end{document}
@@ -218,7 +222,8 @@ function springer(m: Manuscript): string {
     })
     .join('\n')
   const hl = highlightList(m)
-  return `\\documentclass[pdflatex,sn-basic]{sn-jnl}
+  const style = styleOf(m)
+  return `\\documentclass[pdflatex,${style === 'numeric' ? 'sn-mathphys-num' : style === 'apa' ? 'sn-apa' : 'sn-basic'}]{sn-jnl}
 
 \\usepackage{amsmath,amssymb}
 \\usepackage{graphicx}
@@ -271,6 +276,7 @@ function backTex(m: Manuscript, head: (title: string) => string): string {
 }
 
 export function manuscriptLatex(m: Manuscript): string {
+  citeCmd = styleOf(m) === 'numeric' ? 'cite' : 'citep'
   return publisherOf(m.journal) === 'Springer' ? springer(m) : elsevier(m)
 }
 
@@ -285,8 +291,8 @@ export async function exportLatexZip(m: Manuscript): Promise<Blob> {
 
 This project expects the publisher's class file next to main.tex:
 ${springerClass
-  ? '  sn-jnl.cls and sn-basic.bst from the Springer Nature LaTeX template\n  (https://www.springernature.com/gp/authors/campaigns/latex-author-support).'
-  : '  elsarticle.cls and elsarticle-harv.bst (included in TeX Live/MiKTeX, or from\n  https://www.elsevier.com/researcher/author/policies-and-guidelines/latex-instructions).'}
+  ? '  sn-jnl.cls and the .bst of the chosen style (sn-basic, sn-apa or sn-mathphys-num) from the Springer Nature LaTeX template\n  (https://www.springernature.com/gp/authors/campaigns/latex-author-support).'
+  : '  elsarticle.cls and elsarticle-harv.bst / elsarticle-num.bst (included in TeX Live/MiKTeX, or from\n  https://www.elsevier.com/researcher/author/policies-and-guidelines/latex-instructions).'}
 
 Overleaf: upload this zip as a new project; the Elsevier class is already installed there.
 Tables use booktabs; replace each [Caption] and add \\label{} as needed.

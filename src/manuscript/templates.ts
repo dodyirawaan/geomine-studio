@@ -1,6 +1,8 @@
 // Section skeletons for Q1 submissions. Body sections are numbered on export; front and back matter are not.
 import { JOURNALS, type JournalId } from '../ai/prompts'
 import type { Manuscript, ManuscriptSection, SectionRole } from '../store/db'
+import { defaultStyle, makeCiter, type CitationStyle, type Citer } from './citations'
+import { parseBibtex } from './bibtex'
 
 export interface ArticleType {
   id: string
@@ -148,4 +150,14 @@ export function highlightList(m: Manuscript): string[] {
     .split('\n')
     .map((l) => l.replace(/^\s*[-*•]\s*/, '').trim())
     .filter(Boolean)
+}
+
+export function styleOf(m: Pick<Manuscript, 'citationStyle' | 'journal'>): CitationStyle {
+  return m.citationStyle ?? defaultStyle(publisherOf(m.journal))
+}
+
+/** Citer for a whole manuscript, numbering in reading order (abstract, body, back matter). */
+export function citerFor(m: Manuscript): Citer {
+  const order = [...m.sections.filter((s) => s.role === 'abstract'), ...m.sections.filter((s) => s.role === 'body'), ...m.sections.filter((s) => s.role === 'back')]
+  return makeCiter(styleOf(m), parseBibtex(m.bibtex), order.map((s) => s.content))
 }

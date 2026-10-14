@@ -81,6 +81,45 @@ Protokol adalah "kontrak" review Anda dan harus ditetapkan **sebelum** screening
 > Di bagian Methods akan tertulis bahwa AI hanya memberi usulan dan semua keputusan dibuat oleh penulis — ini penting
 > untuk transparansi dan kebijakan AI jurnal.
 
+### Screening terprioritas tanpa AI (active learning, seperti ASReview)
+
+Untuk ratusan sampai ribuan record, centang **Show the most likely relevant records first** di kartu
+*Prioritised screening*:
+
+1. Putuskan minimal satu record relevan dan satu tidak relevan (cari studi yang Anda tahu pasti masuk).
+2. Model kecil (TF-IDF + naive Bayes, sama dengan model bawaan ASReview) belajar dari keputusan Anda dan
+   mengurutkan ulang sisa record setelah **setiap** keputusan. Setiap kartu menampilkan perkiraan *relevance %*.
+   Berjalan di browser — tanpa API key, tanpa kuota, tanpa internet. Model hanya mengurutkan; keputusan tetap Anda.
+3. Kapan berhenti (berdasarkan prosedur **SAFE**, Boetje & van de Schoot, 2024):
+   - minimal 10% record sudah di-screening, **dan**
+   - 50 (atau 100/150/200) record berturut-turut tidak relevan, **lalu**
+   - klik **Draw a random check sample** dan screening sampel acak dari sisa record (filter *Random check sample*).
+   Kalau sampel itu masih memuat record relevan, lanjutkan screening.
+4. Tombol **Stop screening…** baru aktif bila semua kriteria terpenuhi. Sisa record ditandai
+   *"marked as ineligible by automation tools"* — persis kotak yang disediakan PRISMA 2020 — dan bisa dibatalkan
+   dengan **Undo stop**.
+
+Methods otomatis menulis model, kriteria berhenti, hasil sampel cek, dan jumlah record yang tidak di-screening,
+dengan sitasi van de Schoot et al. (2021) dan Boetje & van de Schoot (2024). Batasan (limitations) juga ditulis.
+
+Dalam uji dengan ±440 artikel rockburst dari OpenAlex, semua artikel relevan ditemukan setelah membaca ±22% tumpukan.
+
+### Memakai ASReview, Rayyan atau Covidence
+
+Kalau ingin memakai tool yang sudah mapan, di kartu *Screen in ASReview, Rayyan or Covidence*:
+
+- **CSV for ASReview LAB** — keputusan yang sudah ada ikut sebagai label awal; setelah selesai, ekspor proyek
+  ASReview sebagai CSV.
+- **RIS for Rayyan / Covidence** — impor ke Rayyan; setelah selesai, ekspor review Rayyan sebagai CSV.
+- **Import decisions** — keputusan dicocokkan lewat id, DOI, atau judul. Methods menyebut nama tool; isi versinya
+  di `[VERIFY: version]`.
+
+### Cara menyebutkannya di paper
+
+Yang membuat screening berbantuan tool tetap sah: (1) tool dan versinya disebut, (2) keputusan akhir oleh manusia,
+(3) aturan berhenti dan pengecekannya dilaporkan, (4) screening log dilampirkan sebagai supplementary
+(Write → screening log CSV). Semua ini sudah dibuatkan aplikasi — Anda tinggal memeriksa dan mengisi versi tool.
+
 ### Screening oleh dua reviewer (disarankan untuk systematic review Q1)
 
 1. Di kartu **Two independent reviewers**, isi nama kedua reviewer lalu klik **Turn on two-reviewer screening**.

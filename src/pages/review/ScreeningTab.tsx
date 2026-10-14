@@ -7,10 +7,12 @@ import type { Save } from '../../review/project'
 import { castVote, isConflict, resolveConflict, vote, type Reviewer } from '../../review/dual'
 import { parseScreening, screeningRequest } from '../../review/prompts'
 import type { Decision, ReviewProject, ReviewRecord } from '../../review/types'
+import { buildFeatures, relevant, scoreRecords } from '../../review/prioritise'
 import { DualCard } from './DualCard'
+import { ExchangeCard, PrioritiseCard } from './ScreeningAids'
 
 const PAGE = 25
-type Filter = 'todo' | 'conflicts' | 'maybe' | 'include' | 'exclude' | 'ai-include' | 'ai-exclude' | 'all'
+type Filter = 'todo' | 'conflicts' | 'check' | 'maybe' | 'include' | 'exclude' | 'ai-include' | 'ai-exclude' | 'all'
 
 const FT_REASONS = ['Not underground mining / rock', 'No original data or method', 'Outcome not reported', 'Full text not available', 'Not in English', 'Duplicate publication']
 
@@ -36,15 +38,37 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
   /** The decision of whoever is screening now: the active reviewer's vote in dual mode, else the final decision. */
   const mine = (r: ReviewRecord) => (dual ? vote(r, me) : r.ta)
 
+  // Active learning: features are rebuilt only when the set of records changes, the model after every decision.
+  const prioritised = !!p.aids?.prioritised
+  const recordKey = p.records.map((r) => r.id).join('|')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const features = useMemo(() => (prioritised ? buildFeatures(p.records) : null), [prioritised, recordKey])
+  const decisionKey = p.records.map((r) => (r.auto ? '' : (mine(r) ?? ''))).join('|')
+  const model = useMemo(() => {
+    if (!features) return null
+    const labels = new Map<string, Decision>()
+    for (const r of p.records) {
+      const d = !r.auto && mine(r)
+      if (d) labels.set(r.id, d)
+    }
+    const scores = scoreRecords(features, labels)
+    const ls = [...labels.values()]
+    return { scores, trained: scores ? { relevant: ls.filter(relevant).length, irrelevant: ls.filter((d) => !relevant(d)).length } : null }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [features, decisionKey])
+  const scores = model?.scores ?? null
+
   const shown = useMemo(() => {
     const f = q.trim().toLowerCase()
-    return p.records.filter((r) => {
+    const list = p.records.filter((r) => {
       if (f && !`${r.meta.title} ${r.meta.abstract ?? ''}`.toLowerCase().includes(f)) return false
       switch (filter) {
         case 'todo':
           return !mine(r)
         case 'conflicts':
           return isConflict(r)
+        case 'check':
+          return !!r.check && !mine(r)
         case 'maybe':
           return r.ta === 'maybe'
         case 'include':
@@ -59,14 +83,20 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
           return true
       }
     })
+    if (!scores || !['todo', 'ai-include', 'ai-exclude'].includes(filter)) return list
+    return [...list].sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p.records, filter, q, dual?.enabled, me])
+  }, [p.records, filter, q, dual?.enabled, me, scores])
   const pageItems = shown.slice(page * PAGE, page * PAGE + PAGE)
 
   const decide = (id: string, ta: Decision, taReason = '') =>
     save((cur) => ({
       records: cur.records.map((r) =>
-        r.id !== id ? r : cur.dual?.enabled ? castVote(r, cur.dual.active, ta, taReason) : { ...r, ta, taReason, ...(ta !== 'include' ? { ft: undefined, ftReason: undefined } : {}) },
+        r.id !== id
+          ? r
+          : cur.dual?.enabled
+            ? castVote(r, cur.dual.active, ta, taReason)
+            : { ...r, ta, taReason, auto: undefined, decidedAt: Date.now(), ...(ta !== 'include' ? { ft: undefined, ftReason: undefined } : {}) },
       ),
     }))
   const resolve = (id: string, d: Decision, reason: string) => save((cur) => ({ records: cur.records.map((r) => (r.id === id ? resolveConflict(r, d, reason) : r)) }))
@@ -193,12 +223,15 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
         {dual && <p className="mt-2 text-xs text-stone-500">With two reviewers, AI suggestions stay hidden on a record until the active reviewer has decided it, so they cannot influence the independent decision.</p>}
       </Card>
 
+      <PrioritiseCard p={p} save={save} trained={model?.trained ?? null} />
       <DualCard p={p} save={save} aiLabel={llm.label} />
+      <ExchangeCard p={p} save={save} />
 
       <div className="flex flex-wrap items-center gap-2">
         <Select value={filter} onChange={(e) => (setFilter(e.target.value as Filter), setPage(0), setActive(0))} className="w-auto">
           <option value="todo">{dual ? `To screen by ${dual.names[me - 1]}` : 'To screen'} ({counts.todo})</option>
           {dual && <option value="conflicts">Disagreements to resolve ({counts.conflicts})</option>}
+          {p.records.some((r) => r.check) && <option value="check">Random check sample ({p.records.filter((r) => r.check && !mine(r)).length} left)</option>}
           <option value="ai-include">To screen — AI says include ({counts.aiInc})</option>
           <option value="ai-exclude">To screen — AI says exclude ({counts.aiExc})</option>
           <option value="maybe">Maybe ({counts.maybe})</option>
@@ -223,6 +256,7 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
               onDecide={(d, reason) => decide(r.id, d, reason)}
               dual={dual ? { me, names: dual.names } : undefined}
               onResolve={(d, reason) => resolve(r.id, d, reason)}
+              score={!mine(r) ? scores?.get(r.id) : undefined}
             />
           ))}
         </ul>
@@ -252,6 +286,7 @@ function RecordCard({
   onDecide,
   dual,
   onResolve,
+  score,
 }: {
   r: ReviewRecord
   active: boolean
@@ -260,6 +295,7 @@ function RecordCard({
   onDecide: (d: Decision, reason?: string) => void
   dual?: { me: Reviewer; names: [string, string] }
   onResolve: (d: Decision, reason: string) => void
+  score?: number
 }) {
   const mine = dual ? vote(r, dual.me) : r.ta
   const mineReason = dual ? (dual.me === 1 ? r.ta1Reason : r.ta2Reason) : r.taReason
@@ -273,6 +309,13 @@ function RecordCard({
     <li ref={ref} onClick={onFocus} className={`rounded-xl border bg-white p-3.5 text-sm dark:bg-stone-900 ${tone} ${active ? 'ring-2 ring-amber-500/50' : ''}`}>
       <div className="flex flex-wrap items-start gap-2">
         <p className="min-w-0 flex-1 font-medium">{r.meta.title}</p>
+        {score !== undefined && (
+          <span title="Estimated probability of relevance from your decisions so far" className="rounded-md bg-stone-100 px-1.5 py-0.5 text-xs tabular-nums text-stone-600 dark:bg-stone-800 dark:text-stone-300">
+            relevance {Math.round(score * 100)}%
+          </span>
+        )}
+        {r.check && <Badge>check sample</Badge>}
+        {r.auto && <Badge>not screened (stopping rule)</Badge>}
         {dual && isConflict(r) && <Badge tone="amber">disagreement</Badge>}
         {r.ta && <Badge tone={r.ta === 'include' ? 'green' : r.ta === 'exclude' ? 'red' : 'amber'}>{dual ? `final: ${r.ta}` : r.ta}</Badge>}
       </div>

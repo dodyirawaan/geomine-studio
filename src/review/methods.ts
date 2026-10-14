@@ -225,6 +225,25 @@ export const REVIEW_REFS: Record<string, string> = {
   pages = {1--10},
   doi = {10.1145/2601248.2601268}
 }`,
+  vandeschoot2021: `@article{vandeschoot2021,
+  author = {van de Schoot, Rens and de Bruin, Jonathan and Schram, Raoul and Zahedi, Parisa and de Boer, Jan and Weijdema, Felix and others},
+  title = {An open source machine learning framework for efficient and transparent systematic reviews},
+  journal = {Nature Machine Intelligence},
+  year = {2021},
+  volume = {3},
+  number = {2},
+  pages = {125--133},
+  doi = {10.1038/s42256-020-00287-7}
+}`,
+  boetje2024: `@article{boetje2024,
+  author = {Boetje, Josien and van de Schoot, Rens},
+  title = {The {SAFE} procedure: a practical stopping heuristic for active learning-based screening in systematic reviews and meta-analyses},
+  journal = {Systematic Reviews},
+  year = {2024},
+  volume = {13},
+  pages = {81},
+  doi = {10.1186/s13643-024-02502-7}
+}`,
 }
 
 /** Quality-appraisal criteria for primary studies in mining geotechnics (each scored 0 = no, 1 = partly, 2 = yes). */

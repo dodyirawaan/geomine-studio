@@ -7,6 +7,8 @@ export interface PrismaCounts {
   byDatabase: [string, number][]
   queries: number
   duplicates: number
+  /** Records marked ineligible by an automation tool (stopping rule of prioritised screening), removed before screening. */
+  automation: number
   otherSources: number
   /** Of the other sources: found by citation chasing. */
   citationSearching: number
@@ -28,7 +30,8 @@ export function prismaCounts(p: ReviewProject, needsFullText: boolean): PrismaCo
   for (const s of runs) dbMap.set(s.database ?? 'OpenAlex', (dbMap.get(s.database ?? 'OpenAlex') ?? 0) + s.fetched)
   const records = p.records
   const ta = records.filter((r) => r.ta === 'include')
-  const excludedTA = records.filter((r) => r.ta === 'exclude').length
+  const automation = records.filter((r) => r.auto).length
+  const excludedTA = records.filter((r) => r.ta === 'exclude' && !r.auto).length
   const awaitingTA = records.filter((r) => !r.ta || r.ta === 'maybe').length
   const excludedFT = needsFullText ? ta.filter((r) => r.ft === 'exclude').length : 0
   const reasons = new Map<string, number>()
@@ -39,9 +42,10 @@ export function prismaCounts(p: ReviewProject, needsFullText: boolean): PrismaCo
     byDatabase: [...dbMap.entries()],
     queries: runs.length,
     duplicates: Math.max(0, identified - fromSearch.length),
+    automation,
     otherSources: records.filter((r) => r.manual).length,
     citationSearching: records.filter((r) => r.manual && (r.via === 'backward' || r.via === 'forward')).length,
-    screened: records.length,
+    screened: records.length - automation,
     excludedTA,
     awaitingTA,
     soughtFT: needsFullText ? ta.length : 0,
@@ -80,7 +84,7 @@ export function prismaSvg(c: PrismaCounts, needsFullText: boolean, label = 'PRIS
   const dbLines = c.byDatabase.map(([d, n]) => `  ${d} (n = ${n})`)
   const idH = Math.max(92, 40 + (dbLines.length + otherLines(c).length) * 18)
   parts.push(box(L, y, bw, idH, [`Records identified (n = ${c.identified})`, ...dbLines, ...otherLines(c)], true))
-  parts.push(box(R, y, bw, 70, ['Records removed before screening:', `  Duplicates (n = ${c.duplicates})`]))
+  parts.push(box(R, y, bw, c.automation ? 106 : 70, ['Records removed before screening:', `  Duplicates (n = ${c.duplicates})`, ...(c.automation ? ['  Marked as ineligible by', `  automation tools (n = ${c.automation})`] : [])]))
   parts.push(arrow(L + bw, y + 35, R, y + 35))
   const idBottom = Math.max(92, 40 + (c.byDatabase.length + otherLines(c).length) * 18)
   parts.push(arrow(L + bw / 2, y + idBottom, L + bw / 2, y + idBottom + 30))

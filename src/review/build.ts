@@ -8,6 +8,7 @@ import { bibliometrics } from './analysis'
 import { evidenceStats, evidenceStatsTable } from './evidence'
 import { QUALITY_CRITERIA, REVIEW_REFS, type ReviewMethod } from './methods'
 import { agreement, kappaLabel } from './dual'
+import { MODEL_DESCRIPTION } from './prioritise'
 import type { PrismaCounts } from './prisma'
 import type { ReviewProject, ReviewRecord } from './types'
 
@@ -19,6 +20,8 @@ export function reviewRefKeys(p: ReviewProject, m: ReviewMethod): string[] {
   const keys = [...m.refs]
   if (p.dual?.enabled && p.records.some((r) => r.ta1 && r.ta2)) keys.push('cohen1960', 'landis1977')
   if ((p.snowballs ?? []).some((s) => s.added > 0)) keys.push('wohlin2014')
+  if (p.aids?.prioritised || p.aids?.stopped || p.aids?.external?.some((x) => x.tool === 'ASReview LAB')) keys.push('vandeschoot2021')
+  if (p.aids?.stopped) keys.push('boetje2024')
   return keys
 }
 
@@ -41,6 +44,27 @@ function otherSourcesText(p: ReviewProject, c: PrismaCounts): string {
     )
   }
   if (other > 0) parts.push(` A further ${other} record${other === 1 ? ' was' : 's were'} added from ${runs.length ? 'other sources (expert suggestion and hand searching)' : 'citation tracking and expert suggestion'}.`)
+  return parts.join('')
+}
+
+/** Sentences on prioritised (active-learning) screening, its stopping rule, and external screening tools. */
+function screeningAidsText(p: ReviewProject): string {
+  const a = p.aids
+  if (!a) return ''
+  const parts: string[] = []
+  for (const x of a.external ?? [])
+    parts.push(` Screening decisions for ${x.decisions} records were made in ${x.tool} [VERIFY: version]${x.tool === 'ASReview LAB' ? ' [@vandeschoot2021]' : ''} and imported into the review log.`)
+  if (a.prioritised || a.stopped)
+    parts.push(
+      ` Screening was prioritised with active learning [@vandeschoot2021]: after each decision, a model using ${MODEL_DESCRIPTION}, trained on the reviewers’ decisions, re-ranked the unscreened records so that those most likely to be relevant were shown first. The model only ordered the records; every screening decision was made by a reviewer.`,
+    )
+  const s = a.stopped
+  if (s)
+    parts.push(
+      ` Based on the data-driven stopping criteria of the SAFE procedure [@boetje2024], screening stopped once at least 10% of the records had been screened and at least ${s.k ?? s.run} consecutive records had been judged irrelevant (${s.run} at the time of stopping; ${s.screened} of ${s.total} records screened, ${((100 * s.screened) / s.total).toFixed(1)}%).${
+        s.sample ? ` As a quality check, a random sample of ${s.sample} of the remaining records was screened, which yielded ${s.sampleRelevant} relevant record${s.sampleRelevant === 1 ? '' : 's'}.` : ''
+      } The ${s.marked} unscreened records were marked as ineligible by the automation tool, as shown in the PRISMA flow diagram.`,
+    )
   return parts.join('')
 }
 
@@ -86,7 +110,7 @@ export function methodsText(p: ReviewProject, m: ReviewMethod, c: PrismaCounts):
     parts.push(
       `## Eligibility criteria and study selection\n\nStudies were included when they met all inclusion criteria (${pr.inclusion.join('; ')}) and excluded when any exclusion criterion applied (${pr.exclusion.join('; ')}). Titles and abstracts of ${c.screened} records were screened, of which ${c.excludedTA} were excluded.${
         screeningByText(p, aiUsed)
-      }${
+      }${screeningAidsText(p)}${
         m.fullText
           ? ` The full texts of ${c.soughtFT} reports were assessed for eligibility and ${c.excludedFT} were excluded${c.ftReasons.length ? ` (${c.ftReasons.map(([r, n]) => `${r}: ${n}`).join('; ')})` : ''}.`
           : ''
@@ -168,6 +192,7 @@ export function limitationsText(p: ReviewProject, m: ReviewMethod, papers: Paper
       ? `The search relied on a single database (${dbs[0]}); although it indexes most journals in the field, some studies indexed only elsewhere may have been missed.`
       : `The search covered ${list(dbs)}; studies indexed only in other databases or in grey literature may still have been missed.`,
     p.protocol.language ? `Only studies in ${p.protocol.language} were considered, so work published in other languages — notably the large Chinese-language literature on mining — is under-represented.` : '',
+    p.aids?.stopped ? `Screening was stopped by a stopping rule before ${p.aids.stopped.marked} records had been screened; although the rule and the random check limit the risk, some relevant studies may have been missed.` : '',
     m.screening && !p.dual?.enabled ? 'Records were screened by a single reviewer, which increases the risk that eligible studies were missed.' : '',
     p.records.some((r) => r.ai) ? 'Title and abstract screening was supported by AI suggestions; all decisions were checked by the authors, but residual misclassification cannot be excluded.' : '',
     abstractsOnly ? `Data for ${abstractsOnly} of the ${papers.length} included studies were extracted from abstracts rather than full texts${fullText ? ` (${fullText} from full texts)` : ''}, which limits the detail available for those studies.` : '',
@@ -231,7 +256,7 @@ export function screeningCsv(p: ReviewProject): string {
     const s = v == null ? '' : String(v)
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
   }
-  const head = ['id', 'title', 'year', 'venue', 'doi', 'queries', 'source', 'linked_included_studies', 'reviewer1_decision', 'reviewer1_reason', 'reviewer2_decision', 'reviewer2_reason', 'reviewer2_is_ai', 'title_abstract_decision', 'title_abstract_reason', 'resolved_disagreement', 'ai_suggestion', 'ai_reason', 'full_text_decision', 'full_text_reason']
-  const rows = p.records.map((r) => [r.id, r.meta.title, r.meta.year, r.meta.venue, r.meta.doi, r.manual ? 'manual' : r.queries.map((q) => q + 1).join(' '), r.via ?? (r.manual ? 'manual' : 'database'), r.links?.length, r.ta1, r.ta1Reason, r.ta2, r.ta2Reason, r.ta2Ai ? 'yes' : '', r.ta, r.taReason, r.taResolved ? 'yes' : '', r.ai?.decision, r.ai?.reason, r.ft, r.ftReason].map(esc).join(','))
+  const head = ['id', 'title', 'year', 'venue', 'doi', 'queries', 'source', 'linked_included_studies', 'reviewer1_decision', 'reviewer1_reason', 'reviewer2_decision', 'reviewer2_reason', 'reviewer2_is_ai', 'title_abstract_decision', 'title_abstract_reason', 'resolved_disagreement', 'not_screened_stopping_rule', 'random_check_sample', 'ai_suggestion', 'ai_reason', 'full_text_decision', 'full_text_reason']
+  const rows = p.records.map((r) => [r.id, r.meta.title, r.meta.year, r.meta.venue, r.meta.doi, r.manual ? 'manual' : r.queries.map((q) => q + 1).join(' '), r.via ?? (r.manual ? 'manual' : 'database'), r.links?.length, r.ta1, r.ta1Reason, r.ta2, r.ta2Reason, r.ta2Ai ? 'yes' : '', r.ta, r.taReason, r.taResolved ? 'yes' : '', r.auto ? 'yes' : '', r.check ? 'yes' : '', r.ai?.decision, r.ai?.reason, r.ft, r.ftReason].map(esc).join(','))
   return [head.join(','), ...rows].join('\n')
 }

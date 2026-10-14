@@ -51,6 +51,12 @@ export interface ReviewRecord {
   ta2Reason?: string
   /** Reviewer 2's decision was copied from the AI suggestion rather than made by a person. */
   ta2Ai?: boolean
+  /** When the (active reviewer's) title/abstract decision was made, for the stopping rule of prioritised screening. */
+  decidedAt?: number
+  /** Not screened: marked ineligible by the stopping rule of prioritised screening. */
+  auto?: boolean
+  /** Drawn into the random quality-check sample before stopping. */
+  check?: boolean
   /** The final decision settled a disagreement between the reviewers (discussion or a third reviewer). */
   taResolved?: boolean
 }
@@ -99,6 +105,8 @@ export interface ReviewProject {
   imports?: SearchRun[]
   /** Screening by two independent reviewers. */
   dual?: DualScreening
+  /** Screening aids: active-learning order, stopping, and screening done in external tools. */
+  aids?: ScreeningAids
   /** Citation chasing (snowballing) runs. */
   snowballs?: SnowballRun[]
   /** Quality appraisal per included record id: criterion id → score 0/1/2. */
@@ -110,4 +118,17 @@ export interface ReviewProject {
   manuscriptId?: string
   createdAt: number
   updatedAt: number
+}
+
+export interface ScreeningAids {
+  /** Records are shown most-likely-relevant first (active learning). */
+  prioritised?: boolean
+  /** Irrelevant decisions in a row that end screening. */
+  stopAfter?: number
+  /** Size of the random quality-check sample drawn before stopping. */
+  sampleSize?: number
+  /** Screening was stopped and the rest marked ineligible. */
+  stopped?: { at: number; screened: number; total: number; run: number; k?: number; marked: number; sample: number; sampleRelevant: number }
+  /** Decisions imported from external screening tools (ASReview, Rayyan, …). */
+  external?: { tool: string; at: number; decisions: number }[]
 }

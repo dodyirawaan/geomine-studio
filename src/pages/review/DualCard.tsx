@@ -45,7 +45,7 @@ export function DualCard({ p, save, aiLabel }: { p: ReviewProject; save: Save; a
     const known = new Set(p.records.map((r) => r.id))
     try {
       const res = readSheet(await file.text(), known)
-      await save((cur) => ({ records: cur.records.map((r) => (res.votes.has(r.id) ? castVote(r, sheetFor, res.votes.get(r.id)!.d, res.votes.get(r.id)!.reason) : r)) }))
+      await save((cur) => ({ records: cur.records.map((r) => (res.votes.has(r.id) ? castVote(r, sheetFor, res.votes.get(r.id)!.d, res.votes.get(r.id)!.reason, false, false) : r)) }))
       setStatus(
         `${res.votes.size} decisions imported for ${dual!.names[sheetFor - 1]}` +
           [res.blank && `${res.blank} rows left blank`, res.invalid && `${res.invalid} with an unreadable decision`, res.unknown && `${res.unknown} unknown ids`].filter(Boolean).map((x) => `; ${x}`).join('') +

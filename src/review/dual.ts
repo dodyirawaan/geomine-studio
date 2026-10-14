@@ -6,12 +6,17 @@ export type Reviewer = 1 | 2
 
 export const vote = (r: ReviewRecord, who: Reviewer) => (who === 1 ? r.ta1 : r.ta2)
 
+/** The decision that counts for whoever screens in this browser: their own vote with two reviewers, else the final one. */
+export function myDecision(p: ReviewProject): (r: ReviewRecord) => Decision | undefined {
+  return p.dual?.enabled ? (r) => vote(r, p.dual!.active) : (r) => r.ta
+}
+
 /** A decision both reviewers made differently that has not been resolved yet. */
 export const isConflict = (r: ReviewRecord) => !!r.ta1 && !!r.ta2 && r.ta1 !== r.ta2 && !r.taResolved
 
 /** Final decision from the two votes: set when they agree, open otherwise (until resolved). */
 function settle(r: ReviewRecord): ReviewRecord {
-  if (r.taResolved) return r
+  if (r.taResolved || r.auto) return r
   const agreed = r.ta1 && r.ta1 === r.ta2 ? r.ta1 : undefined
   const reason = agreed ? (r.ta1Reason || r.ta2Reason || '') : undefined
   const out: ReviewRecord = { ...r, ta: agreed, taReason: reason }
@@ -24,8 +29,10 @@ function settle(r: ReviewRecord): ReviewRecord {
 }
 
 /** Records one reviewer's decision; changing a vote reopens a resolved disagreement. */
-export function castVote(r: ReviewRecord, who: Reviewer, d: Decision, reason = '', fromAi = false): ReviewRecord {
-  const next: ReviewRecord = who === 1 ? { ...r, ta1: d, ta1Reason: reason } : { ...r, ta2: d, ta2Reason: reason, ta2Ai: fromAi || undefined }
+export function castVote(r: ReviewRecord, who: Reviewer, d: Decision, reason = '', fromAi = false, stamp = !fromAi): ReviewRecord {
+  // Only decisions made one by one in the app are time-stamped (they drive the stopping rule); bulk imports are not.
+  const base = { ...r, auto: undefined, ...(stamp ? { decidedAt: Date.now() } : {}) }
+  const next: ReviewRecord = who === 1 ? { ...base, ta1: d, ta1Reason: reason } : { ...base, ta2: d, ta2Reason: reason, ta2Ai: fromAi || undefined }
   if (vote(r, who) !== d) next.taResolved = undefined
   return settle(next)
 }

@@ -4,6 +4,7 @@ import { PROVIDER_IDS, PROVIDERS } from '../ai/providers'
 import type { Effort, ProviderId } from '../ai/types'
 import { Link } from 'react-router-dom'
 import { ModelPicker } from '../components/ModelPicker'
+import { SecurityCard } from '../components/SecurityCard'
 import { BackupCard, SyncCard } from '../components/SyncCard'
 import { UnlockPanel } from '../components/UnlockPanel'
 import { Button, Card, Input, Label, PageHeader, Select } from '../components/ui'
@@ -108,6 +109,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </Card>
+
+      <SecurityCard />
 
       <Card title="Default models">
         <p className="mb-3 text-sm text-stone-600 dark:text-stone-400">

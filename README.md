@@ -31,8 +31,8 @@ workspace built around three principles:
   against typical ranges, applies ISRM/ASTM, PRISMA and journal conventions, and knows the field's key schools and terminology.
 - **Integrity by design** — no invented data or references: missing data is marked `[DATA NEEDED]`, unverifiable claims `[VERIFY]`, references are
   checked against Crossref, and Methods text, PRISMA counts and statistics are generated from your data rather than by a language model.
-- **Your data stay yours** — everything is stored in your browser; API keys are encrypted with your passphrase; optional sync goes to your own
-  private GitHub repository, encrypted.
+- **Your data stay yours** — everything is stored in your browser; API keys are encrypted with your passphrase (unlockable with Face ID or
+  fingerprint); optional sync goes to your own private GitHub repository, encrypted.
 
 ## Research focus
 
@@ -91,6 +91,7 @@ GeoMine Studio is a static web application with no backend.
 
 - Manuscripts, chats, the library, PDFs, experiments and reviews are stored in your browser (IndexedDB). Use **Settings → Backup** regularly.
 - API keys are encrypted with AES-256-GCM using a key derived from your passphrase (PBKDF2, 310,000 iterations) and are sent only to their own provider.
+- Optional **biometric unlock** with a passkey (Face ID, Touch ID, Windows Hello, Android): the WebAuthn PRF extension releases a key that decrypts the passphrase only after the device verifies you; no biometric data reaches the app. An **app lock** can hide everything until you unlock, with automatic locking when idle.
 - Requests leave your browser only to the AI provider you choose, to OpenAlex and Crossref (search terms, DOIs and reference titles), to the Python
   runtime CDN when the Virtual Lab first loads, and — if you enable sync — to your own private GitHub repository, encrypted by default.
 

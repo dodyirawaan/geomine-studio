@@ -1,7 +1,9 @@
 import { CloudOff, Lock, LockOpen, Menu, X } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
-import { Logo } from './components/Logo'
+import { Logo, LogoMark } from './components/Logo'
+import { UnlockPanel } from './components/UnlockPanel'
+import { loadAppLock } from './store/appLock'
 import { SyncAgent } from './components/SyncCard'
 import { NAV, SETTINGS, titleFor } from './nav'
 import ChatPage from './pages/Chat'
@@ -27,6 +29,12 @@ export default function App() {
     window.scrollTo(0, 0)
     document.title = titleFor(location.pathname)
   }, [location.pathname])
+
+  const { status, lock } = useVault()
+  const appLock = useAppLock()
+  useIdleLock(status === 'unlocked' ? appLock.idleMinutes : 0, lock)
+
+  if (appLock.enabled && status === 'locked') return <LockScreen />
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -222,4 +230,46 @@ function useOnline(): boolean {
     }
   }, [])
   return online
+}
+
+function useAppLock() {
+  const [a, setA] = useState(loadAppLock)
+  useEffect(() => {
+    const on = () => setA(loadAppLock())
+    window.addEventListener('gm-applock', on)
+    return () => window.removeEventListener('gm-applock', on)
+  }, [])
+  return a
+}
+
+/** Locks the vault after `minutes` without keyboard, pointer, touch or scroll activity (0 = never). */
+function useIdleLock(minutes: number, lock: () => void) {
+  useEffect(() => {
+    if (!minutes) return
+    let last = Date.now()
+    const bump = () => (last = Date.now())
+    const events = ['pointerdown', 'pointermove', 'keydown', 'touchstart', 'wheel', 'scroll']
+    events.forEach((e) => window.addEventListener(e, bump, { passive: true }))
+    const t = setInterval(() => Date.now() - last > minutes * 60_000 && lock(), 15_000)
+    return () => {
+      clearInterval(t)
+      events.forEach((e) => window.removeEventListener(e, bump))
+    }
+  }, [minutes, lock])
+}
+
+function LockScreen() {
+  return (
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-stone-50 px-4 dark:bg-stone-950">
+      <div className="mb-6 flex flex-col items-center gap-3">
+        <LogoMark size={64} />
+        <p className="text-lg font-semibold tracking-tight">
+          GeoMine <span className="font-normal text-stone-500">Studio</span> is locked
+        </p>
+      </div>
+      <div className="w-full max-w-md">
+        <UnlockPanel />
+      </div>
+    </main>
+  )
 }

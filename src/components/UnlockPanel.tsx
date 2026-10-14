@@ -1,12 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { useVault } from '../store/vault'
-import { KeyRound, ShieldCheck } from 'lucide-react'
+import { KeyRound, ScanFace, ShieldCheck } from 'lucide-react'
 import { LogoMark } from './Logo'
 import { Button, Input } from './ui'
 
 /** Shown wherever keys are needed but the vault is locked or not created yet. */
 export function UnlockPanel() {
-  const { status, unlock, reset } = useVault()
+  const { status, unlock, reset, hasPasskey, unlockWithPasskey } = useVault()
   const [pass, setPass] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
@@ -47,8 +47,31 @@ export function UnlockPanel() {
             : 'Your keys stay encrypted until you unlock them for this session.'}
         </span>
       </p>
+      {!creating && hasPasskey && (
+        <div className="mb-4">
+          <Button
+            type="button"
+            className="w-full min-h-11 text-base"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true)
+              setError('')
+              try {
+                await unlockWithPasskey()
+              } catch (e) {
+                setError((e as Error).name === 'NotAllowedError' ? 'Biometric check cancelled or timed out.' : (e as Error).message)
+              } finally {
+                setBusy(false)
+              }
+            }}
+          >
+            <ScanFace className="h-5 w-5" /> Unlock with Face ID / fingerprint
+          </Button>
+          <p className="mt-3 text-center text-xs text-stone-500">or use your passphrase</p>
+        </div>
+      )}
       <form onSubmit={submit} className="space-y-2">
-        <Input type="password" placeholder="Passphrase" value={pass} onChange={(e) => setPass(e.target.value)} autoFocus />
+        <Input type="password" placeholder="Passphrase" value={pass} onChange={(e) => setPass(e.target.value)} autoFocus={creating || !hasPasskey} />
         {creating && (
           <Input type="password" placeholder="Confirm passphrase" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
         )}

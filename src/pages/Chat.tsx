@@ -263,7 +263,7 @@ export default function ChatPage() {
             {!apiKey && (
               <p className="mb-2 text-sm text-amber-700">Add a {PROVIDERS[provider].label} key in Settings to chat.</p>
             )}
-            {apiKey && !model && <p className="mb-2 text-sm text-amber-700">Pick a model (↻ loads the list).</p>}
+            {apiKey && !model && <p className="mb-2 text-sm text-amber-700">Choose a model from the list.</p>}
             <div className="flex gap-2">
               <textarea
                 value={input}

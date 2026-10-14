@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PROVIDERS } from '../ai/providers'
 import type { ModelInfo, ProviderId } from '../ai/types'
 import { loadModelCache, saveModelCache } from '../store/settings'
-import { Button, Input } from './ui'
+import { Button, Input, Select } from './ui'
 
-/** Free-text model id with suggestions fetched from the provider's model list. */
+const CUSTOM = '__custom__'
+
+/** Dropdown of the provider's models, fetched automatically when a key is available; a custom id is a fallback. */
 export function ModelPicker({
   provider,
   apiKey,
@@ -20,11 +22,13 @@ export function ModelPicker({
   const [cachedFor, setCachedFor] = useState(provider)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [custom, setCustom] = useState(false)
 
   if (cachedFor !== provider) {
     setCachedFor(provider)
     setModels(loadModelCache()[provider] ?? [])
     setError('')
+    setCustom(false)
   }
 
   async function refresh() {
@@ -42,24 +46,51 @@ export function ModelPicker({
     }
   }
 
-  const listId = `models-${provider}`
+  // Load the list the first time a key is available for this provider.
+  useEffect(() => {
+    if (apiKey && !(loadModelCache()[provider] ?? []).length) void refresh()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider, apiKey])
+
+  const known = models.some((m) => m.id === value)
+  const showInput = custom || (!!value && !known && models.length === 0)
+
   return (
     <div>
       <div className="flex gap-2">
-        <Input list={listId} value={value} placeholder="model id" onChange={(e) => onChange(e.target.value.trim())} />
-        <Button type="button" variant="ghost" onClick={refresh} disabled={busy} title="Fetch available models">
+        {showInput ? (
+          <Input value={value} placeholder="model id" onChange={(e) => onChange(e.target.value.trim())} autoFocus={custom} />
+        ) : (
+          <Select
+            value={known ? value : value ? value : ''}
+            onChange={(e) => {
+              if (e.target.value === CUSTOM) setCustom(true)
+              else onChange(e.target.value)
+            }}
+            title="Model"
+          >
+            <option value="" disabled>
+              {busy ? 'Loading models…' : models.length ? 'Choose a model…' : apiKey ? 'Press ↻ to load models' : 'Add an API key first'}
+            </option>
+            {value && !known && <option value={value}>{value}</option>}
+            {models.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name && m.name !== m.id ? `${m.name} (${m.id})` : m.id}
+              </option>
+            ))}
+            <option value={CUSTOM}>Custom model id…</option>
+          </Select>
+        )}
+        {showInput && models.length > 0 && (
+          <Button type="button" variant="ghost" onClick={() => setCustom(false)} title="Back to the list">
+            ☰
+          </Button>
+        )}
+        <Button type="button" variant="ghost" onClick={refresh} disabled={busy || !apiKey} title="Reload the model list from the provider">
           {busy ? '…' : '↻'}
         </Button>
       </div>
-      <datalist id={listId}>
-        {models.map((m) => (
-          <option key={m.id} value={m.id}>
-            {m.name && m.name !== m.id ? m.name : ''}
-          </option>
-        ))}
-      </datalist>
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
-      {!error && models.length > 0 && <p className="mt-1 text-xs text-stone-500">{models.length} models available</p>}
     </div>
   )
 }

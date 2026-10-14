@@ -1,15 +1,46 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
 :root {
   color-scheme: light dark;
 }
 
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
 body {
-  @apply bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100;
+  @apply bg-stone-50 font-sans text-stone-900 dark:bg-stone-950 dark:text-stone-100;
+  font-feature-settings: "cv11", "ss01";
+}
+
+::selection {
+  @apply bg-amber-200 text-stone-900 dark:bg-amber-700 dark:text-white;
+}
+
+/* One visible keyboard focus style for links and buttons (fields have their own focus ring). */
+:where(a, button, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-amber-500);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 .katex-display {
   overflow-x: auto;
   overflow-y: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

@@ -1,8 +1,9 @@
+import { Gauge } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { PROVIDERS } from '../ai/providers'
 import { costOf, loadPrices, savePrices, type Prices } from '../ai/usage'
-import { Button, Card, Input, Select } from '../components/ui'
+import { Button, Card, Input, PageHeader, Select } from '../components/ui'
 import { db, type UsageRecord } from '../store/db'
 
 const PERIODS = [
@@ -64,19 +65,20 @@ export default function UsagePage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold">Usage & cost</h1>
-          <p className="text-stone-600 dark:text-stone-400">Tokens reported by each provider for every completed AI request made in this browser.</p>
-        </div>
-        <Select value={period} onChange={(e) => setPeriod(e.target.value)} className="w-auto">
-          {PERIODS.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.label}
-            </option>
-          ))}
-        </Select>
-      </div>
+      <PageHeader
+        icon={Gauge}
+        title="Usage & cost"
+        description="Tokens reported by each provider for every completed AI request made in this browser."
+        actions={
+          <Select value={period} onChange={(e) => setPeriod(e.target.value)} className="w-auto">
+              {PERIODS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </Select>
+        }
+      />
 
       <div className="grid gap-3 sm:grid-cols-4">
         {[

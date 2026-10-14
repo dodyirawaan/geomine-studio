@@ -1,8 +1,9 @@
+import { FileText } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { JOURNALS, type JournalId } from '../ai/prompts'
-import { Button, Card, Input, Label, Select } from '../components/ui'
+import { Button, Card, Input, Label, PageHeader, Select } from '../components/ui'
 import { ARTICLE_TYPES, countWords, createManuscript } from '../manuscript/templates'
 import { db } from '../store/db'
 
@@ -33,12 +34,7 @@ export default function ManuscriptsPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Manuscripts</h1>
-        <p className="text-stone-600 dark:text-stone-400">
-          Write section by section with an AI co-author, then export to Word or a LaTeX project for the journal's template.
-        </p>
-      </div>
+      <PageHeader icon={FileText} title="Manuscripts" description="Write section by section with an AI co-author, check consistency, and export to Word or the journal's LaTeX template." />
 
       <Card title="New manuscript">
         <form onSubmit={create} className="grid gap-3 md:grid-cols-2">

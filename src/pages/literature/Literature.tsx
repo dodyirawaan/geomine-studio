@@ -1,3 +1,5 @@
+import { PageHeader } from '../../components/ui'
+import { BookOpenText } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
@@ -24,15 +26,7 @@ export default function LiteraturePage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold">Literature</h1>
-          <p className="text-stone-600 dark:text-stone-400">
-            Find papers on OpenAlex, keep them in a local library with PDFs, build a literature matrix, and ask questions answered from your
-            own sources.
-          </p>
-        </div>
-      </div>
+      <PageHeader icon={BookOpenText} title="Literature" description="Find papers on OpenAlex, keep them in a local library with PDFs, build a literature matrix, and ask questions answered from your own sources." />
       <nav className="flex gap-1 overflow-x-auto border-b border-stone-200 text-sm dark:border-stone-800">
         {TABS.map((t) => (
           <button

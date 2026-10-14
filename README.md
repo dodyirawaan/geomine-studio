@@ -1,3 +1,5 @@
+<p align="center"><img src="public/icon.svg" width="88" alt="GeoMine Studio logo"></p>
+
 # GeoMine Studio
 
 Research writing workspace for **underground mining geotechnics** — rockburst & mining-induced seismicity, ground support & tunnels, water-conservation and green mining, IR/AE monitoring, and ML/DL modelling — aimed at Q1 journals (IJRMMS, TUST, RMRE, IJMST, JRMGE).

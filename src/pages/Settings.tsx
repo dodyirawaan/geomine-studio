@@ -1,3 +1,4 @@
+import { Settings } from 'lucide-react'
 import { useState } from 'react'
 import { PROVIDER_IDS, PROVIDERS } from '../ai/providers'
 import type { Effort, ProviderId } from '../ai/types'
@@ -5,7 +6,7 @@ import { Link } from 'react-router-dom'
 import { ModelPicker } from '../components/ModelPicker'
 import { BackupCard, SyncCard } from '../components/SyncCard'
 import { UnlockPanel } from '../components/UnlockPanel'
-import { Button, Card, Input, Label, Select } from '../components/ui'
+import { Button, Card, Input, Label, PageHeader, Select } from '../components/ui'
 import { useSettings } from '../store/settings'
 import { useVault, type Secrets } from '../store/vault'
 
@@ -33,6 +34,7 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
+      <PageHeader icon={Settings} title="Settings" description="API keys (encrypted in this browser), default models, generation limits, sync to GitHub and backups." />
       <Card
         title={
           <div className="flex items-center justify-between">

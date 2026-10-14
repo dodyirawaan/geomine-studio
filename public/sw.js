@@ -2,7 +2,7 @@
 // cache-first, pages network-first. Each deploy registers sw.js?v=<build id>, which replaces old caches.
 const VERSION = new URL(self.location.href).searchParams.get('v') || 'dev'
 const CACHE = `geomine-${VERSION}`
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png']
+const SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg', './favicon-32.png', './icon-192.png', './icon-512.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

@@ -1,8 +1,9 @@
+import { Calculator as CalculatorIcon } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Markdown } from '../components/Markdown'
-import { Button, Card, Input, Label, Select } from '../components/ui'
+import { Button, Card, Input, Label, PageHeader, Select } from '../components/ui'
 import { readJson, writeJson } from '../lib/storage'
 import { CITE_RE, citeKeys, citeLabel, parseBibtex } from '../manuscript/bibtex'
 import { CATEGORIES, fullMethodsText, insertIntoManuscript, METHODS } from '../methods'
@@ -35,13 +36,7 @@ export default function MethodsPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Methods library</h1>
-        <p className="text-stone-600 dark:text-stone-400">
-          Rock-engineering calculators that write their own Methods paragraph — equations, parameter table and citations — ready to insert into a
-          manuscript.
-        </p>
-      </div>
+      <PageHeader icon={CalculatorIcon} title="Methods library" description="Rock-engineering calculators that write their own Methods paragraph — equations, parameter table and citations — ready to insert into a manuscript." />
       <div className="grid gap-4 md:grid-cols-[15rem_1fr]">
         <nav className="hidden space-y-3 text-sm md:block">
           {CATEGORIES.map((c) => (

@@ -1,7 +1,8 @@
+import { FlaskConical } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Button, Card } from '../../components/ui'
+import { Button, Card, PageHeader } from '../../components/ui'
 import { parseCsv } from '../../vlab/data'
 import { METRICS } from '../../vlab/metrics'
 import { configFor, TEMPLATES, type LabTemplate } from '../../vlab/templates'
@@ -53,16 +54,16 @@ export default function VLabPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Virtual Lab</h1>
-        <p className="text-stone-600 dark:text-stone-400">
-          Train and compare machine-learning and deep-learning models on your own data, in the browser, with leakage-safe validation and a detailed,
-          publication-oriented report.{' '}
-          <a href="https://github.com/dodyirawaan/geomine-studio/blob/main/docs/VLAB.md" target="_blank" rel="noreferrer" className="text-amber-700 underline dark:text-amber-500">
-            Step-by-step guide
+      <PageHeader
+        icon={FlaskConical}
+        title="Virtual Lab"
+        description="Train and compare machine-learning and deep-learning models on your own data, in the browser, with leakage-safe validation and a detailed, publication-oriented report."
+        actions={
+          <a href="https://github.com/dodyirawaan/geomine-studio/blob/main/docs/VLAB.md" target="_blank" rel="noreferrer" className="text-sm font-medium text-amber-800 hover:underline dark:text-amber-400">
+            Step-by-step guide ↗
           </a>
-        </p>
-      </div>
+        }
+      />
 
       <Card title="Start from your data">
         <div className="flex flex-wrap items-center gap-3">

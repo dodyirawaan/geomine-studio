@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { useVault } from '../store/vault'
-import { Button, Card, Input } from './ui'
+import { KeyRound, ShieldCheck } from 'lucide-react'
+import { LogoMark } from './Logo'
+import { Button, Input } from './ui'
 
 /** Shown wherever keys are needed but the vault is locked or not created yet. */
 export function UnlockPanel() {
@@ -29,11 +31,21 @@ export function UnlockPanel() {
   }
 
   return (
-    <Card title={creating ? 'Create your key vault' : 'Unlock your key vault'} className="mx-auto max-w-md">
-      <p className="mb-3 text-sm text-stone-600 dark:text-stone-400">
-        {creating
-          ? 'API keys are encrypted in this browser with a passphrase (AES-256-GCM). They are only sent to the AI provider you call — never to GitHub or any other server.'
-          : 'Enter your passphrase to decrypt your API keys for this session.'}
+    <section className="mx-auto mt-4 max-w-md rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8 dark:border-stone-800 dark:bg-stone-900">
+      <div className="mb-5 flex items-center gap-3">
+        <LogoMark size={40} />
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">{creating ? 'Create your key vault' : 'Unlock your key vault'}</h2>
+          <p className="text-xs text-stone-500">{creating ? 'One passphrase protects all your API keys' : 'Enter the passphrase you chose for this browser'}</p>
+        </div>
+      </div>
+      <p className="mb-4 flex gap-2 rounded-lg bg-stone-50 p-3 text-sm text-stone-600 dark:bg-stone-800/60 dark:text-stone-300">
+        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-green-700 dark:text-green-400" />
+        <span>
+          {creating
+            ? 'API keys are encrypted in this browser with a passphrase (AES-256-GCM). They are only sent to the AI provider you call — never to GitHub or any other server.'
+            : 'Your keys stay encrypted until you unlock them for this session.'}
+        </span>
       </p>
       <form onSubmit={submit} className="space-y-2">
         <Input type="password" placeholder="Passphrase" value={pass} onChange={(e) => setPass(e.target.value)} autoFocus />
@@ -43,6 +55,7 @@ export function UnlockPanel() {
         {error && <p className="text-sm text-red-600">{error}</p>}
         <div className="flex items-center justify-between pt-1">
           <Button type="submit" disabled={busy || !pass}>
+            <KeyRound className="h-4 w-4" />
             {creating ? 'Create vault' : 'Unlock'}
           </Button>
           {!creating && (
@@ -58,7 +71,7 @@ export function UnlockPanel() {
           )}
         </div>
       </form>
-    </Card>
+    </section>
   )
 }
 

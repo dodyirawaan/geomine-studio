@@ -1,61 +1,39 @@
-import { useEffect, useState } from 'react'
-import { NavLink, Route, Routes } from 'react-router-dom'
+import { CloudOff, Lock, LockOpen, Menu, X } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { Logo } from './components/Logo'
+import { SyncAgent } from './components/SyncCard'
+import { NAV, SETTINGS, titleFor } from './nav'
 import ChatPage from './pages/Chat'
 import Dashboard from './pages/Dashboard'
 import EditorPage from './pages/Editor'
 import LiteraturePage from './pages/literature/Literature'
-import MethodsPage from './pages/Methods'
-import WorkspacePage from './pages/workspace/Workspace'
-import UsagePage from './pages/Usage'
-import VLabPage from './pages/vlab/VLab'
-import ExperimentPage from './pages/vlab/Experiment'
-import { SyncAgent } from './components/SyncCard'
 import ManuscriptsPage from './pages/Manuscripts'
+import MethodsPage from './pages/Methods'
 import SettingsPage from './pages/Settings'
+import UsagePage from './pages/Usage'
+import ExperimentPage from './pages/vlab/Experiment'
+import VLabPage from './pages/vlab/VLab'
+import WorkspacePage from './pages/workspace/Workspace'
 import { useVault } from './store/vault'
 
-const NAV = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/manuscripts', label: 'Manuscripts', end: false },
-  { to: '/literature', label: 'Literature', end: false },
-  { to: '/methods', label: 'Methods', end: false },
-  { to: '/vlab', label: 'VLab', end: false },
-  { to: '/chat', label: 'Assistant', end: false },
-  { to: '/settings', label: 'Settings', end: false },
-]
-
 export default function App() {
-  const { status } = useVault()
-  const online = useOnline()
+  const location = useLocation()
+
+  // Each page starts at the top and names the browser tab.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    document.title = titleFor(location.pathname)
+  }, [location.pathname])
+
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 sm:gap-4 border-b border-stone-200 bg-white/90 px-4 backdrop-blur dark:border-stone-800 dark:bg-stone-900/90">
-        <span className="font-semibold whitespace-nowrap">⛏️ <span className="hidden sm:inline">GeoMine Studio</span><span className="sm:hidden">GeoMine</span></span>
-        <nav className="flex min-w-0 gap-1 overflow-x-auto text-sm">
-          {NAV.map((n) => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              end={n.end}
-              className={({ isActive }) =>
-                `shrink-0 rounded px-2 py-1 sm:px-2.5 ${isActive ? 'bg-stone-200 font-medium dark:bg-stone-800' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`
-              }
-            >
-              {n.label}
-            </NavLink>
-          ))}
-        </nav>
-        <span className="ml-auto hidden text-xs text-stone-500 sm:inline" title="Key vault status">
-          {status === 'unlocked' ? '🔓 unlocked' : status === 'locked' ? '🔒 locked' : 'no vault'}
-        </span>
-        {!online && (
-          <span className="ml-auto rounded bg-stone-200 px-2 py-0.5 text-xs text-stone-700 sm:ml-0 dark:bg-stone-800 dark:text-stone-300" title="Writing, calculators and exports work offline; AI, search and sync need a connection">
-            offline
-          </span>
-        )}
-      </header>
+      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:shadow">
+        Skip to content
+      </a>
+      <Header />
       <SyncAgent />
-      <main className="flex-1">
+      <main id="main" className="flex-1">
         <Routes>
           <Route path="/" element={<Page><Dashboard /></Page>} />
           <Route path="/manuscripts" element={<Page><ManuscriptsPage /></Page>} />
@@ -75,8 +53,156 @@ export default function App() {
   )
 }
 
-function Page({ children }: { children: React.ReactNode }) {
-  return <div className="p-4 sm:p-6">{children}</div>
+function Header() {
+  const [open, setOpen] = useState(false)
+  const location = useLocation()
+
+  useEffect(() => setOpen(false), [location.pathname])
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
+
+  return (
+    <header className="sticky top-0 z-40 border-b border-stone-200 bg-white/85 backdrop-blur-md dark:border-stone-800 dark:bg-stone-900/85">
+      <div className="mx-auto flex h-14 max-w-screen-2xl items-center gap-3 px-3 sm:px-5">
+        <Link to="/" className="shrink-0 rounded-md" aria-label="GeoMine Studio home">
+          <Logo size={28} compact />
+        </Link>
+        <nav className="ml-4 hidden items-center gap-0.5 lg:flex" aria-label="Main">
+          {NAV.map((n) => (
+            <NavLink
+              key={n.to}
+              to={n.to}
+              end={n.end}
+              className={({ isActive }) =>
+                `group flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors ${
+                  isActive
+                    ? 'bg-stone-100 font-medium text-stone-900 dark:bg-stone-800 dark:text-white'
+                    : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-white'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <n.icon className={`h-4 w-4 ${isActive ? 'text-amber-700 dark:text-amber-400' : 'text-stone-400 group-hover:text-stone-600 dark:group-hover:text-stone-300'}`} />
+                  {n.label}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="ml-auto flex items-center gap-1.5">
+          <OfflineBadge />
+          <VaultPill />
+          <NavLink
+            to={SETTINGS.to}
+            title="Settings"
+            aria-label="Settings"
+            className={({ isActive }) =>
+              `hidden h-9 w-9 items-center justify-center rounded-lg lg:flex ${isActive ? 'bg-stone-100 text-stone-900 dark:bg-stone-800 dark:text-white' : 'text-stone-500 hover:bg-stone-100 hover:text-stone-900 dark:hover:bg-stone-800 dark:hover:text-white'}`
+            }
+          >
+            <SETTINGS.icon className="h-[18px] w-[18px]" />
+          </NavLink>
+          <button
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-stone-600 hover:bg-stone-100 lg:hidden dark:text-stone-300 dark:hover:bg-stone-800"
+            onClick={() => setOpen(!open)}
+            aria-expanded={open}
+            aria-controls="mobile-nav"
+            aria-label={open ? 'Close menu' : 'Open menu'}
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
+      </div>
+      {open && (
+        <>
+          <div className="fixed inset-0 top-14 z-30 bg-stone-950/30 lg:hidden" onClick={() => setOpen(false)} aria-hidden="true" />
+          <div id="mobile-nav" className="absolute inset-x-0 top-14 z-40 max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-b border-stone-200 bg-white p-2 shadow-lg lg:hidden dark:border-stone-800 dark:bg-stone-900">
+            <nav aria-label="Main" className="grid gap-0.5 sm:grid-cols-2">
+              {[...NAV, SETTINGS].map((n) => (
+                <NavLink
+                  key={n.to}
+                  to={n.to}
+                  end={n.end}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-lg px-3 py-2.5 ${isActive ? 'bg-amber-50 dark:bg-amber-950/40' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`
+                  }
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300">
+                    <n.icon className="h-[18px] w-[18px]" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium">{n.label}</span>
+                    <span className="block truncate text-xs text-stone-500">{n.description}</span>
+                  </span>
+                </NavLink>
+              ))}
+            </nav>
+          </div>
+        </>
+      )}
+    </header>
+  )
+}
+
+function VaultPill() {
+  const { status } = useVault()
+  const label = status === 'unlocked' ? 'Unlocked' : status === 'locked' ? 'Locked' : 'Set up keys'
+  const Icon = status === 'unlocked' ? LockOpen : Lock
+  return (
+    <Link
+      to="/settings"
+      title={status === 'unlocked' ? 'Key vault unlocked for this session' : status === 'locked' ? 'Unlock the key vault to use AI features' : 'Create a key vault to use AI features'}
+      className={`flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium ${
+        status === 'unlocked'
+          ? 'border-green-200 bg-green-50 text-green-800 dark:border-green-900 dark:bg-green-950/50 dark:text-green-300'
+          : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-300'
+      }`}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      <span className="hidden sm:inline">{label}</span>
+    </Link>
+  )
+}
+
+function OfflineBadge() {
+  const online = useOnline()
+  if (online) return null
+  return (
+    <span
+      className="flex h-8 items-center gap-1.5 rounded-full bg-stone-200 px-2.5 text-xs font-medium text-stone-700 dark:bg-stone-800 dark:text-stone-300"
+      title="Writing, calculators and exports work offline; AI, search and sync need a connection"
+    >
+      <CloudOff className="h-3.5 w-3.5" />
+      <span className="hidden sm:inline">Offline</span>
+    </span>
+  )
+}
+
+function Page({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col">
+      <div className="flex-1 px-4 py-6 sm:px-6 sm:py-8">{children}</div>
+      <footer className="border-t border-stone-200 px-4 py-5 text-xs text-stone-500 sm:px-6 dark:border-stone-800">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-1">
+          <span>© {new Date().getFullYear()} GeoMine Studio</span>
+          <span>Your data stay in this browser unless you turn on sync.</span>
+          <span className="ml-auto flex gap-4">
+            <a className="hover:text-stone-800 dark:hover:text-stone-200" href="https://github.com/dodyirawaan/geomine-studio/blob/main/docs/VLAB.md" target="_blank" rel="noreferrer">
+              VLab guide
+            </a>
+            <a className="hover:text-stone-800 dark:hover:text-stone-200" href="https://github.com/dodyirawaan/geomine-studio" target="_blank" rel="noreferrer">
+              Source
+            </a>
+          </span>
+        </div>
+      </footer>
+    </div>
+  )
 }
 
 function useOnline(): boolean {

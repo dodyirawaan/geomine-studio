@@ -13,6 +13,8 @@
     "@anthropic-ai/sdk": "^0.133.0",
     "dexie": "^4.4.6",
     "dexie-react-hooks": "^4.4.0",
+    "docx": "^9.11.0",
+    "jszip": "^3.10.2",
     "katex": "^0.16.47",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -20,12 +22,15 @@
     "react-router-dom": "^7.18.4",
     "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
-    "remark-math": "^6.0.0"
+    "remark-math": "^6.0.0",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
+    "@types/mdast": "^4.0.4",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",

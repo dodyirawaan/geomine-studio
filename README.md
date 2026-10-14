@@ -1,6 +1,6 @@
 # GeoMine Studio
 
-Research writing workspace for **underground mining geotechnics** — rockburst & mining-induced seismicity, ground support & tunnels, and ML/DL modelling — aimed at Q1 journals (IJRMMS, TUST, RMRE, IJMST, JRMGE).
+Research writing workspace for **underground mining geotechnics** — rockburst & mining-induced seismicity, ground support & tunnels, water-conservation and green mining, IR/AE monitoring, and ML/DL modelling — aimed at Q1 journals (IJRMMS, TUST, RMRE, IJMST, JRMGE).
 
 Live: https://dodyirawaan.github.io/geomine-studio/
 
@@ -62,6 +62,18 @@ Each manuscript has a **Workspace** (from the editor or the manuscript list):
 - **Usage & cost**: tokens per provider, model and feature for every AI request, with your own prices per million tokens.
 - **Installable offline app (PWA)**: after the first visit, writing, calculators, checks and Word/LaTeX export work without a connection; AI, search and sync need one.
 
+## Features (Phase 7) — Virtual Lab
+
+Train and compare machine-learning and deep-learning models on your own data, in the browser — see the step-by-step guide in [docs/VLAB.md](docs/VLAB.md).
+
+- **Engines**: scikit-learn 1.8, XGBoost and LightGBM in Python (Pyodide/WebAssembly), and TensorFlow.js for deep networks (DNN, 1D-CNN, LSTM, GRU) — each in a background worker.
+- **Leakage-safe validation**: grouped (site/project/specimen/batch), temporal (forward-chaining) or stratified splits computed once and shared by every model; preprocessing and optional nested hyperparameter tuning inside each training fold; sliding-window sequences for IR/AE and microseismic time series.
+- **Detailed report**: CV mean ± SD and test metrics with 95% bootstrap CIs, corrected resampled t-tests between models, confusion matrix and ROC or parity and residual plots, grouped permutation importance, TreeSHAP, partial dependence, learning curves, hyperparameters, library versions, leakage and data-quality warnings, and draft Methods/Results text written from the numbers.
+- **Exports**: HTML report, Markdown, test predictions, the exact design matrix with its split, and a Python script that reproduces the experiment with scikit-learn/Keras and adds SHAP for every model.
+- **Research templates** with synthetic demo data (clearly marked, never for publication): rockburst intensity, microseismic event vs. blast, water-conducting fractured zone height, CO2-carbonated fly-ash backfill strength, and IR/AE failure-precursor sequences.
+
+The AI co-author's domain now also covers water-conservation mining (aquifer protection, water-conducting fractured zone, backfill mining), green mining and CO2 mineralisation of coal-based solid waste, and infrared-radiation / acoustic-emission monitoring of rock failure.
+
 ## Privacy model
 
 This is a static site with no backend. Your keys, chats, manuscripts and PDFs never leave your browser except for the requests you make to the AI provider you chose and the metadata lookups sent to OpenAlex and Crossref (search terms, DOIs and reference titles). If you turn on sync, your data also goes to your own private GitHub repository, encrypted by default. Use API keys with a spending limit.
@@ -86,3 +98,4 @@ Push to `main`. The workflow in `.github/workflows/deploy.yml` builds and publis
 4. ✅ Methods library — RMR/Q/GSI/Hoek–Brown, rockburst criteria, support design calculators
 5. ✅ Automation pipeline — idea → draft → Reviewer 2 → revision, consistency checker, Q1 checklist
 6. ✅ Sync & polish — private GitHub sync, version history, cost tracking, PWA
+7. ✅ Virtual Lab — in-browser ML/DL with leakage-safe validation and detailed reports

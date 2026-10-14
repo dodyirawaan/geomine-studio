@@ -7,6 +7,8 @@ import LiteraturePage from './pages/literature/Literature'
 import MethodsPage from './pages/Methods'
 import WorkspacePage from './pages/workspace/Workspace'
 import UsagePage from './pages/Usage'
+import VLabPage from './pages/vlab/VLab'
+import ExperimentPage from './pages/vlab/Experiment'
 import { SyncAgent } from './components/SyncCard'
 import ManuscriptsPage from './pages/Manuscripts'
 import SettingsPage from './pages/Settings'
@@ -17,6 +19,7 @@ const NAV = [
   { to: '/manuscripts', label: 'Manuscripts', end: false },
   { to: '/literature', label: 'Literature', end: false },
   { to: '/methods', label: 'Methods', end: false },
+  { to: '/vlab', label: 'VLab', end: false },
   { to: '/chat', label: 'Assistant', end: false },
   { to: '/settings', label: 'Settings', end: false },
 ]
@@ -60,6 +63,8 @@ export default function App() {
           <Route path="/manuscripts/:id/workspace" element={<Page><WorkspacePage /></Page>} />
           <Route path="/literature" element={<Page><LiteraturePage /></Page>} />
           <Route path="/methods" element={<Page><MethodsPage /></Page>} />
+          <Route path="/vlab" element={<Page><VLabPage /></Page>} />
+          <Route path="/vlab/:id" element={<Page><ExperimentPage /></Page>} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/chat/:convId" element={<ChatPage />} />
           <Route path="/settings" element={<Page><SettingsPage /></Page>} />

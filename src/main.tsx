@@ -8,6 +8,7 @@ import { VaultProvider } from './store/vault.tsx'
 import { installTombstoneHooks } from './sync/dataset'
 
 installTombstoneHooks()
+if (import.meta.env.DEV) void import('./vlab/devhook')
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

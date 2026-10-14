@@ -11,6 +11,7 @@ const ROADMAP = [
   { phase: 4, title: 'Methods library', items: 'RMR89, Q, GSI, Hoek–Brown/Erm/MC fit, Kirsch + rockburst criteria, GRC, dynamic support, stability graph → Methods text', done: true },
   { phase: 5, title: 'Automation pipeline', items: 'Idea → outline → draft → Reviewer 2 → revision + response letter, consistency checker, Q1 checklist, snapshots', done: true },
   { phase: 6, title: 'Sync & polish', items: 'Encrypted private GitHub sync, JSON backup, version history, usage & cost tracking, installable offline PWA', done: true },
+  { phase: 7, title: 'Virtual Lab', items: 'In-browser ML/DL (scikit-learn, XGBoost, LightGBM, TensorFlow.js) with leakage-safe validation and detailed reports', done: true },
 ]
 
 export default function Dashboard() {

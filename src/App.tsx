@@ -11,6 +11,8 @@ import LiteraturePage from './pages/literature/Literature'
 import ManuscriptsPage from './pages/Manuscripts'
 import MethodsPage from './pages/Methods'
 import SettingsPage from './pages/Settings'
+import ReviewProjectPage from './pages/review/ReviewProject'
+import ReviewsPage from './pages/review/Reviews'
 import UsagePage from './pages/Usage'
 import ExperimentPage from './pages/vlab/Experiment'
 import VLabPage from './pages/vlab/VLab'
@@ -40,6 +42,8 @@ export default function App() {
           <Route path="/manuscripts/:id" element={<EditorPage />} />
           <Route path="/manuscripts/:id/workspace" element={<Page><WorkspacePage /></Page>} />
           <Route path="/literature" element={<Page><LiteraturePage /></Page>} />
+          <Route path="/reviews" element={<Page><ReviewsPage /></Page>} />
+          <Route path="/reviews/:id" element={<Page><ReviewProjectPage /></Page>} />
           <Route path="/methods" element={<Page><MethodsPage /></Page>} />
           <Route path="/vlab" element={<Page><VLabPage /></Page>} />
           <Route path="/vlab/:id" element={<Page><ExperimentPage /></Page>} />
@@ -71,7 +75,7 @@ function Header() {
         <Link to="/" className="shrink-0 rounded-md" aria-label="GeoMine Studio home">
           <Logo size={28} compact />
         </Link>
-        <nav className="ml-4 hidden items-center gap-0.5 lg:flex" aria-label="Main">
+        <nav className="ml-4 hidden items-center gap-0.5 xl:flex" aria-label="Main">
           {NAV.map((n) => (
             <NavLink
               key={n.to}
@@ -102,13 +106,13 @@ function Header() {
             title="Settings"
             aria-label="Settings"
             className={({ isActive }) =>
-              `hidden h-9 w-9 items-center justify-center rounded-lg lg:flex ${isActive ? 'bg-stone-100 text-stone-900 dark:bg-stone-800 dark:text-white' : 'text-stone-500 hover:bg-stone-100 hover:text-stone-900 dark:hover:bg-stone-800 dark:hover:text-white'}`
+              `hidden h-9 w-9 items-center justify-center rounded-lg xl:flex ${isActive ? 'bg-stone-100 text-stone-900 dark:bg-stone-800 dark:text-white' : 'text-stone-500 hover:bg-stone-100 hover:text-stone-900 dark:hover:bg-stone-800 dark:hover:text-white'}`
             }
           >
             <SETTINGS.icon className="h-[18px] w-[18px]" />
           </NavLink>
           <button
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-stone-600 hover:bg-stone-100 lg:hidden dark:text-stone-300 dark:hover:bg-stone-800"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-stone-600 hover:bg-stone-100 xl:hidden dark:text-stone-300 dark:hover:bg-stone-800"
             onClick={() => setOpen(!open)}
             aria-expanded={open}
             aria-controls="mobile-nav"
@@ -120,9 +124,9 @@ function Header() {
       </div>
       {open && (
         <>
-          <div className="fixed inset-0 top-14 z-30 bg-stone-950/30 lg:hidden" onClick={() => setOpen(false)} aria-hidden="true" />
-          <div id="mobile-nav" className="absolute inset-x-0 top-14 z-40 max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-b border-stone-200 bg-white p-2 shadow-lg lg:hidden dark:border-stone-800 dark:bg-stone-900">
-            <nav aria-label="Main" className="grid gap-0.5 sm:grid-cols-2">
+          <div className="fixed inset-0 top-14 z-30 bg-stone-950/30 xl:hidden" onClick={() => setOpen(false)} aria-hidden="true" />
+          <div id="mobile-nav" className="absolute inset-x-0 top-14 z-40 max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-b border-stone-200 bg-white p-2 shadow-lg xl:hidden dark:border-stone-800 dark:bg-stone-900">
+            <nav aria-label="Main" className="grid gap-0.5 sm:grid-cols-2 lg:grid-cols-4">
               {[...NAV, SETTINGS].map((n) => (
                 <NavLink
                   key={n.to}

@@ -1,103 +1,138 @@
-<p align="center"><img src="public/icon.svg" width="88" alt="GeoMine Studio logo"></p>
+<p align="center"><img src="public/icon.svg" width="96" alt="GeoMine Studio logo"></p>
 
-# GeoMine Studio
+<h1 align="center">GeoMine Studio</h1>
 
-Research writing workspace for **underground mining geotechnics** — rockburst & mining-induced seismicity, ground support & tunnels, water-conservation and green mining, IR/AE monitoring, and ML/DL modelling — aimed at Q1 journals (IJRMMS, TUST, RMRE, IJMST, JRMGE).
+<p align="center">
+  <b>A research workspace for underground mining geotechnics — from research gap to Q1 submission.</b><br>
+  Literature, systematic reviews, rock-engineering calculations, machine learning and manuscript writing in one place, with every number traceable.
+</p>
 
-Live: https://dodyirawaan.github.io/geomine-studio/
+<p align="center">
+  <a href="https://dodyirawaan.github.io/geomine-studio/"><b>Open the app</b></a> ·
+  <a href="docs/REVIEW.md">Review tutorial</a> ·
+  <a href="docs/VLAB.md">Virtual Lab guide</a>
+</p>
 
-## Features (Phase 1)
+<p align="center">
+  <a href="https://github.com/dodyirawaan/geomine-studio/actions/workflows/deploy.yml"><img src="https://github.com/dodyirawaan/geomine-studio/actions/workflows/deploy.yml/badge.svg" alt="Deploy"></a>
+</p>
 
-- **Multi-provider AI chat** with streaming: Anthropic (Claude), OpenAI, Google Gemini, OpenRouter. Model lists are fetched live from each provider.
-- **Mining-oriented agents**: Research Assistant, Literature Analyst, Gap & Novelty Finder, Methods Writer, Results & Discussion, ML/DL Modelling, Reviewer 2 Simulator, Language Polisher.
-- **Target-journal profiles** injected into the system prompt.
-- **Integrity rules** baked in: no invented data, uncertain references flagged `[VERIFY]`, missing data flagged `[DATA NEEDED: …]`.
-- **Encrypted key vault**: API keys are AES-256-GCM encrypted in the browser with your passphrase and sent only to their own provider.
-- Conversations stored locally in IndexedDB; Markdown, tables and LaTeX (KaTeX) rendering.
+<p align="center"><img src="docs/images/home.png" width="860" alt="GeoMine Studio home page"></p>
 
-## Features (Phase 2)
+---
 
-- **Manuscript editor** with Q1 templates: research (IMRaD) or review article, with Highlights, Abstract, Keywords and the publisher's declarations (Elsevier CRediT/competing interest/data/AI-use, or Springer Nature statements).
-- **AI co-author per section**: draft from notes, revise, polish, or get a Reviewer 2 critique. The model sees the whole manuscript and your reference keys, and marks gaps as `[DATA NEEDED: …]` / `[VERIFY: …]`. One-step undo after replacing text.
-- **Citations** as `[@key]` / `[@a; @b]` from a pasted BibTeX library, with checks for missing and duplicate keys.
-- **Export**: Word (.docx) with native equations, three-line tables, line numbers and an author–year reference list; LaTeX project (.zip) for `elsarticle` or Springer `sn-jnl` with `references.bib`; Markdown; BibTeX.
-- Highlight length checker (≤ 85 characters), word counts per section, autosave in IndexedDB.
+## Why GeoMine Studio
 
-## Features (Phase 3)
+Writing a Q1 paper in mining geotechnics means juggling literature databases, reference managers, spreadsheets, calculation tools, Python notebooks
+and a word processor — and keeping every number, citation and claim consistent across them. GeoMine Studio brings that work into one browser-based
+workspace built around three principles:
 
-- **Literature search** on OpenAlex (title/abstract, year range, most relevant/cited/newest). Free without a key; an optional OpenAlex API key in Settings raises the daily quota.
-- **Local library**: add from search, by DOI, or by importing PDFs (the DOI printed in the PDF is used to fetch metadata). Tags, notes, citation keys, BibTeX export.
-- **Reference verification** in each manuscript: every BibTeX entry is checked against Crossref (DOI resolves, title/year/first author match); missing DOIs are suggested and can be added in one click. Library papers can be added to a manuscript's references directly.
-- **Literature matrix**: the AI extracts site/depth, rock properties, methods, data, findings and limitations per paper from the PDF text or abstract ("not reported" when absent), then synthesises themes and gaps. CSV and Markdown export.
-- **Ask the library**: questions answered from your own PDFs and abstracts, with passages retrieved locally (BM25) and citations as `[@key, p. N]`.
+- **Domain expertise** — the AI co-author is instructed as a senior researcher in rock mechanics and mining: it reasons from mechanisms, checks values
+  against typical ranges, applies ISRM/ASTM, PRISMA and journal conventions, and knows the field's key schools and terminology.
+- **Integrity by design** — no invented data or references: missing data is marked `[DATA NEEDED]`, unverifiable claims `[VERIFY]`, references are
+  checked against Crossref, and Methods text, PRISMA counts and statistics are generated from your data rather than by a language model.
+- **Your data stay yours** — everything is stored in your browser; API keys are encrypted with your passphrase; optional sync goes to your own
+  private GitHub repository, encrypted.
 
-Many publishers (including Elsevier) do not share abstracts with OpenAlex or Crossref, so attach the PDF to build a matrix row for those papers.
+## Research focus
 
-## Features (Phase 4)
+Rockburst and mining-induced seismicity · deep mining (high stress, heat, time-dependent behaviour) · ground support and tunnels ·
+caving and stoping · water-conservation coal mining · backfill and CO₂ mineralisation · infrared-radiation and acoustic-emission monitoring ·
+rock mass characterisation and numerical modelling · machine learning and deep learning in geomechanics.
 
-**Methods library** — rock-engineering calculators that write their own Methods paragraph (equations, parameter table, `[@key]` citations) and insert it into a manuscript together with the BibTeX entries it cites:
+Twenty target journals are profiled (Elsevier and Springer Nature), grouped by topic — from IJRMMS, TUST, RMRE, IJMST and JRMGE to Engineering
+Geology, Underground Space, the International Journal of Coal Science & Technology, Journal of Cleaner Production and Computers and Geotechnics.
 
-- RMR89 with orientation adjustment and GSI ≈ RMR89′ − 5
-- Q-system with equivalent dimension, unsupported span, bolt length, roof pressure, Qw, and GSI from Q′
-- GSI quantification (1.5·JCond89 + RQD/2) compared with the RMR and Q correlations
-- Generalised Hoek–Brown (2002), rock mass modulus (Hoek & Diederichs 2006), equivalent Mohr–Coulomb c′, φ′
-- Kirsch boundary stresses with Russenes, Tao, brittleness, Wet and PES rockburst criteria, and depth of brittle failure (Martin et al. 1999)
-- Convergence–confinement ground reaction curve (Mohr–Coulomb) with squeezing class
-- Dynamic support energy demand and factor of safety (Canadian Rockburst Support Handbook)
-- Stability graph N′ = Q′·A·B·C and hydraulic radius
+## Modules
 
-Hoek–Brown results were checked against RocLab values, and the closed-form Mohr–Coulomb fit against a numerical least-squares fit. DOIs of the method references were verified against Crossref.
+| Module | What it does |
+|---|---|
+| **Manuscripts** | IMRaD and review templates per journal; section editor with an AI co-author (draft from notes, revise, polish, critique); citations as `[@key]`; four citation styles (Elsevier Harvard, APA 7, Springer, numbered); export to **Word** (native equations, three-line tables, line numbers) and **LaTeX** (`elsarticle` / `sn-jnl`). |
+| **Workspace** | Idea → outline → draft → Reviewer 2 → revision with a response letter; rule-based **consistency check** (citations, placeholders, figure/table numbering, abbreviations, units, values missing from the main text); **Q1 checklist**; version history. |
+| **Literature** | OpenAlex search, local library with PDFs (text extracted in the browser), **Crossref reference verification**, AI literature matrix, and questions answered from your own papers with page citations. |
+| **Reviews** | **Systematic (PRISMA 2020), scoping (PRISMA-ScR), bibliometric and narrative reviews** end to end: keyword bank and suggested topics with a live review-gap indicator, protocol, multi-database search (OpenAlex + Scopus/Web of Science imports), AI-assisted screening with human decisions, extraction and quality appraisal, PRISMA diagram, bibliometrics, evidence statistics, two-stage thematic synthesis, publication-readiness check, and a finished manuscript. |
+| **Methods** | RMR89, Q-system and support, GSI, Hoek–Brown with rock mass modulus and Mohr–Coulomb fit, Kirsch stresses with rockburst criteria, convergence–confinement, dynamic support demand and stability graph — each writes its own Methods paragraph with equations and verified references. |
+| **VLab** | Machine and deep learning in the browser (scikit-learn, XGBoost, LightGBM, TensorFlow.js) with grouped/temporal leakage-safe validation, nested tuning, bootstrap confidence intervals, corrected t-tests, SHAP and permutation importance, and a detailed report with a reproducing Python script. |
+| **Assistant** | Chat with nine expert modes (Research Assistant, Literature Analyst, Gap & Novelty Finder, Methods Writer, Results & Discussion, ML/DL Modelling, Review Methodologist, Reviewer 2, Language Polisher), with any of Anthropic Claude, OpenAI, Google Gemini or OpenRouter. |
 
-## Features (Phase 5)
+<p align="center"><img src="docs/images/review-writer.png" width="860" alt="Review writer with suggested topics and the keyword bank"></p>
 
-Each manuscript has a **Workspace** (from the editor or the manuscript list):
+## Getting started
 
-- **Pipeline**: idea → outline (title options, research questions, novelty statement, notes per section) → draft all sections (body first, then abstract, highlights, keywords) → Reviewer 2 with structured comments → revision of the selected comments with a *Response to reviewers* letter. AI output is kept as proposals with a side-by-side view; nothing changes until you accept it.
-- **Consistency check** (rule-based, live): unresolved citations and placeholders, figure/table numbering and order, abbreviations defined before use (abstract and main text separately), unit formatting, mixed British/American spelling, repeated words, long sentences, and values in the Abstract/Highlights/Conclusions that do not appear in the main text. An optional AI pass looks for contradictions between sections.
-- **Q1 checklist**: automatic items (structure, highlights, declarations, integrity checks, recent-literature share) plus manual submission items, per publisher.
-- **History**: snapshots saved automatically before AI text is accepted or a version is restored, plus manual snapshots; restore any of the last 50.
+1. Open **[the app](https://dodyirawaan.github.io/geomine-studio/)** — nothing to install. On desktop or mobile you can also install it as an app
+   (browser menu → *Install*); writing, calculations and exports then work offline.
+2. **Settings → create your key vault** with a passphrase, and add an API key for at least one AI provider (Claude, OpenAI, Gemini or OpenRouter).
+   Use a key with a spending limit. Writing, calculators and exports work without any key.
+3. Choose a default model from the provider's list.
+4. Start where you are in your research:
+   - a new paper → **Manuscripts → New manuscript**
+   - a review → **Reviews** → pick a suggested topic or build a search string in the keyword bank
+   - analysis → **Methods** or **VLab**
 
-## Features (Phase 6)
+Optional: in Settings, add a free OpenAlex API key for more searches per day, and a fine-grained GitHub token to sync your work across devices.
 
-- **Private GitHub sync** (Settings → Sync): manuscripts, chats and the literature library (optionally with extracted PDF text) are kept in your own private repository, one commit per sync, encrypted with a key derived from your vault passphrase. Newer changes win per item; deletions propagate; a manuscript overwritten by a newer synced version is kept in its History. Needs a fine-grained token with *Contents: Read and write* on that one repository.
-- **Backup**: download everything as one JSON file and merge it back on any browser (API keys are never included).
-- **Usage & cost**: tokens per provider, model and feature for every AI request, with your own prices per million tokens.
-- **Installable offline app (PWA)**: after the first visit, writing, calculators, checks and Word/LaTeX export work without a connection; AI, search and sync need one.
+## A typical workflow
 
-## Features (Phase 7) — Virtual Lab
+1. **Find the gap** — Assistant (*Gap & Novelty Finder*) and the review-gap indicator in Reviews.
+2. **Build the literature** — search, import PDFs, verify DOIs, extract a literature matrix.
+3. **Compute and model** — Methods calculators and VLab experiments, each producing Methods and Results text with tables.
+4. **Write** — section by section with the co-author, citing only papers in your library.
+5. **Check** — consistency check, Reviewer 2 simulation, Crossref verification, Q1 checklist.
+6. **Submit** — export to Word or the journal's LaTeX template in the journal's citation style.
 
-Train and compare machine-learning and deep-learning models on your own data, in the browser — see the step-by-step guide in [docs/VLAB.md](docs/VLAB.md).
+## Documentation
 
-- **Engines**: scikit-learn 1.8, XGBoost and LightGBM in Python (Pyodide/WebAssembly), and TensorFlow.js for deep networks (DNN, 1D-CNN, LSTM, GRU) — each in a background worker.
-- **Leakage-safe validation**: grouped (site/project/specimen/batch), temporal (forward-chaining) or stratified splits computed once and shared by every model; preprocessing and optional nested hyperparameter tuning inside each training fold; sliding-window sequences for IR/AE and microseismic time series.
-- **Detailed report**: CV mean ± SD and test metrics with 95% bootstrap CIs, corrected resampled t-tests between models, confusion matrix and ROC or parity and residual plots, grouped permutation importance, TreeSHAP, partial dependence, learning curves, hyperparameters, library versions, leakage and data-quality warnings, and draft Methods/Results text written from the numbers.
-- **Exports**: HTML report, Markdown, test predictions, the exact design matrix with its split, and a Python script that reproduces the experiment with scikit-learn/Keras and adds SHAP for every model.
-- **Research templates** with synthetic demo data (clearly marked, never for publication): rockburst intensity, microseismic event vs. blast, water-conducting fractured zone height, CO2-carbonated fly-ash backfill strength, and IR/AE failure-precursor sequences.
+- [Review tutorial](docs/REVIEW.md) — step-by-step guide to writing systematic, scoping, bibliometric and narrative reviews (in Indonesian).
+- [Virtual Lab guide](docs/VLAB.md) — how experiments are split, trained, evaluated and reported, ready to cite in a Methods section.
 
-The AI co-author's domain now also covers water-conservation mining (aquifer protection, water-conducting fractured zone, backfill mining), green mining and CO2 mineralisation of coal-based solid waste, and infrared-radiation / acoustic-emission monitoring of rock failure.
+## Privacy and security
 
-## Privacy model
+GeoMine Studio is a static web application with no backend.
 
-This is a static site with no backend. Your keys, chats, manuscripts and PDFs never leave your browser except for the requests you make to the AI provider you chose and the metadata lookups sent to OpenAlex and Crossref (search terms, DOIs and reference titles). If you turn on sync, your data also goes to your own private GitHub repository, encrypted by default. Use API keys with a spending limit.
+- Manuscripts, chats, the library, PDFs, experiments and reviews are stored in your browser (IndexedDB). Use **Settings → Backup** regularly.
+- API keys are encrypted with AES-256-GCM using a key derived from your passphrase (PBKDF2, 310,000 iterations) and are sent only to their own provider.
+- Requests leave your browser only to the AI provider you choose, to OpenAlex and Crossref (search terms, DOIs and reference titles), to the Python
+  runtime CDN when the Virtual Lab first loads, and — if you enable sync — to your own private GitHub repository, encrypted by default.
+
+## Responsible use of AI
+
+The assistant drafts, critiques and organises; you remain the author. GeoMine Studio is built to make that easy to honour: AI suggestions in
+screening are never applied without your decision, AI-drafted text is kept as proposals until you accept it, generated citations are limited to
+your verified library, and manuscripts include the generative-AI declaration that Elsevier and Springer Nature require. Read, check and rewrite
+every AI-generated passage before submission.
+
+## Technology
+
+React 19 · TypeScript · Vite · Tailwind CSS · Dexie (IndexedDB) · docx and JSZip (export) · pdf.js · Pyodide with scikit-learn, XGBoost and LightGBM ·
+TensorFlow.js (WebAssembly backend) · KaTeX · OpenAlex and Crossref APIs · GitHub Pages and a service worker for offline use.
 
 ## Development
 
 ```bash
 npm install
 npm run dev      # http://localhost:5173/geomine-studio/
-npm run build
+npm run lint
+npm run build    # production build in dist/
 ```
 
-## Deploy
+Every push to `main` is linted, built and deployed to GitHub Pages by [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
+(set **Settings → Pages → Source** to *GitHub Actions* once).
 
-Push to `main`. The workflow in `.github/workflows/deploy.yml` builds and publishes to GitHub Pages. In the repository settings, set **Pages → Source** to **GitHub Actions** once.
+```
+src/
+  ai/           providers, expert prompts, usage tracking
+  manuscript/   templates, citation styles, Word / LaTeX / Markdown export
+  literature/   OpenAlex, Crossref verification, PDF text, retrieval
+  review/       review methods, search, PRISMA, evidence statistics, writing
+  methods/      rock-engineering calculators
+  vlab/         data preparation, splits, engines, metrics, reports
+  pipeline/     consistency checks, Q1 checklist, snapshots
+  sync/         encrypted GitHub sync and backups
+  pages/        application screens
+```
 
-## Roadmap
+## Acknowledgements
 
-1. ✅ Foundation — key vault, multi-provider chat, mining agents
-2. ✅ Manuscript editor & Q1 templates — IMRaD editor, DOCX + LaTeX + BibTeX export
-3. ✅ Literature — OpenAlex/Crossref search, DOI verification, literature matrix, PDF RAG
-4. ✅ Methods library — RMR/Q/GSI/Hoek–Brown, rockburst criteria, support design calculators
-5. ✅ Automation pipeline — idea → draft → Reviewer 2 → revision, consistency checker, Q1 checklist
-6. ✅ Sync & polish — private GitHub sync, version history, cost tracking, PWA
-7. ✅ Virtual Lab — in-browser ML/DL with leakage-safe validation and detailed reports
+Literature data from [OpenAlex](https://openalex.org) and [Crossref](https://www.crossref.org). Machine learning runs on
+[Pyodide](https://pyodide.org), [scikit-learn](https://scikit-learn.org), [XGBoost](https://xgboost.ai), [LightGBM](https://lightgbm.readthedocs.io)
+and [TensorFlow.js](https://www.tensorflow.org/js). Reporting follows PRISMA 2020 (Page et al., 2021) and PRISMA-ScR (Tricco et al., 2018).

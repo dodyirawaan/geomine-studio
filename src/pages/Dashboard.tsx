@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ArrowRight, Check, ChevronRight, Circle, ExternalLink, FilePlus2, Search, Sparkles } from 'lucide-react'
+import { ArrowRight, Check, ChevronRight, Circle, FilePlus2, Search, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { JOURNALS } from '../ai/prompts'
+import { journalsByTopic } from '../ai/prompts'
 import { PROVIDER_IDS, PROVIDERS } from '../ai/providers'
 import { LogoMark } from '../components/Logo'
 import { ButtonLink, Card } from '../components/ui'
@@ -12,6 +12,7 @@ import { useVault } from '../store/vault'
 
 const TOPICS = [
   'Rockburst & mining-induced seismicity',
+  'Deep mining',
   'Ground support & tunnels',
   'Water-conservation mining',
   'Backfill & CO₂ mineralisation',
@@ -22,6 +23,7 @@ const TOPICS = [
 const WORKFLOW = [
   { step: 'Idea & gap', to: '/chat', hint: 'Gap & Novelty Finder' },
   { step: 'Literature', to: '/literature', hint: 'Search, matrix, verify DOIs' },
+  { step: 'Review', to: '/reviews', hint: 'PRISMA review, or the state of the art' },
   { step: 'Methods', to: '/methods', hint: 'Calculators → Methods text' },
   { step: 'Modelling', to: '/vlab', hint: 'ML/DL with a full report' },
   { step: 'Draft', to: '/manuscripts', hint: 'Section-by-section co-author' },
@@ -35,6 +37,7 @@ export default function Dashboard() {
     papers: await db.papers.count(),
     experiments: await db.experiments.count(),
     chats: await db.conversations.count(),
+    reviews: await db.reviews.count(),
   }))
   const recent = useLiveQuery(async () => {
     const ms = (await db.manuscripts.orderBy('updatedAt').reverse().limit(4).toArray()).map((m) => ({ kind: 'Manuscript', title: m.title || 'Untitled', to: `/manuscripts/${m.id}`, at: m.updatedAt }))
@@ -58,6 +61,7 @@ export default function Dashboard() {
         '/literature': `${counts.papers} paper${counts.papers === 1 ? '' : 's'} in library`,
         '/vlab': `${counts.experiments} experiment${counts.experiments === 1 ? '' : 's'}`,
         '/chat': `${counts.chats} conversation${counts.chats === 1 ? '' : 's'}`,
+        '/reviews': `${counts.reviews} review project${counts.reviews === 1 ? '' : 's'}`,
         '/methods': '8 calculators',
       }
     : {}
@@ -204,18 +208,28 @@ export default function Dashboard() {
           <p className="mt-3 text-xs text-stone-500">The assistant, literature presets, calculators and VLab templates are tuned to these topics.</p>
         </Card>
         <Card title="Target journals">
-          <ul className="-mx-2 space-y-0.5 text-sm">
-            {JOURNALS.map((j) => (
-              <li key={j.id}>
-                <a href={j.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-stone-50 dark:hover:bg-stone-800/60">
-                  <span className="w-14 shrink-0 text-xs font-semibold text-amber-800 dark:text-amber-400">{j.id.toUpperCase()}</span>
-                  <span className="min-w-0 flex-1 truncate">{j.name}</span>
-                  <ExternalLink className="h-3.5 w-3.5 shrink-0 text-stone-400" />
-                </a>
-              </li>
+          <div className="space-y-3">
+            {journalsByTopic().map(([topic, list]) => (
+              <div key={topic}>
+                <p className="mb-1 text-xs font-semibold text-stone-500">{topic}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {list.map((j) => (
+                    <a
+                      key={j.id}
+                      href={j.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={`${j.name} (${j.publisher})`}
+                      className="rounded-md border border-stone-200 px-2 py-0.5 text-xs text-stone-700 hover:border-amber-400 hover:text-amber-900 dark:border-stone-700 dark:text-stone-300 dark:hover:text-amber-300"
+                    >
+                      {j.abbr}
+                    </a>
+                  ))}
+                </div>
+              </div>
             ))}
-          </ul>
-          <p className="mt-2 text-xs text-stone-500">
+          </div>
+          <p className="mt-3 text-xs text-stone-500">
             Quartiles change yearly — confirm on{' '}
             <a className="underline" href="https://www.scimagojr.com/" target="_blank" rel="noreferrer">
               SJR

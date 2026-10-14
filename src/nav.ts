@@ -1,4 +1,4 @@
-import { BookOpenText, Calculator, FileText, FlaskConical, Home, MessagesSquare, Settings, type LucideIcon } from 'lucide-react'
+import { BookOpenText, Calculator, FileText, FlaskConical, Home, MessagesSquare, NotebookPen, Settings, type LucideIcon } from 'lucide-react'
 
 export interface NavItem {
   to: string
@@ -13,6 +13,7 @@ export const NAV: NavItem[] = [
   { to: '/', label: 'Home', description: 'Overview and quick start', icon: Home, end: true },
   { to: '/manuscripts', label: 'Manuscripts', description: 'Write, check and export Q1 papers', icon: FileText },
   { to: '/literature', label: 'Literature', description: 'Search, library, matrix and Q&A', icon: BookOpenText },
+  { to: '/reviews', label: 'Reviews', description: 'Systematic, scoping & bibliometric reviews', icon: NotebookPen },
   { to: '/methods', label: 'Methods', description: 'Rock-engineering calculators', icon: Calculator },
   { to: '/vlab', label: 'VLab', description: 'Machine & deep learning lab', icon: FlaskConical },
   { to: '/chat', label: 'Assistant', description: 'AI co-author chat', icon: MessagesSquare },

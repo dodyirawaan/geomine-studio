@@ -1,8 +1,10 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type { ProviderId, Usage } from '../ai/types'
 import type { JournalId, ModeId } from '../ai/prompts'
+import type { CitationStyle } from '../manuscript/citations'
 import type { ExperimentResult } from '../vlab/evaluate'
 import type { ExperimentConfig } from '../vlab/types'
+import type { ReviewProject } from '../review/types'
 
 export interface Conversation {
   id: string
@@ -36,6 +38,7 @@ export const db = new Dexie('geomine-studio') as Dexie & {
   usage: EntityTable<UsageRecord, 'id'>
   tombstones: EntityTable<Tombstone, 'key'>
   experiments: EntityTable<Experiment, 'id'>
+  reviews: EntityTable<ReviewProject, 'id'>
 }
 
 db.version(1).stores({
@@ -64,6 +67,10 @@ db.version(5).stores({
 
 db.version(6).stores({
   experiments: 'id, updatedAt',
+})
+
+db.version(7).stores({
+  reviews: 'id, updatedAt',
 })
 
 export type SectionRole = 'highlights' | 'abstract' | 'keywords' | 'body' | 'back'
@@ -96,6 +103,8 @@ export interface Manuscript {
   bibtex: string
   /** Manual Q1 checklist items the author has ticked. */
   checklist?: Record<string, boolean>
+  /** Reference style for exports and preview; defaults to the publisher's style. */
+  citationStyle?: CitationStyle
   createdAt: number
   updatedAt: number
 }

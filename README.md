@@ -31,6 +31,21 @@ Live: https://dodyirawaan.github.io/geomine-studio/
 
 Many publishers (including Elsevier) do not share abstracts with OpenAlex or Crossref, so attach the PDF to build a matrix row for those papers.
 
+## Features (Phase 4)
+
+**Methods library** — rock-engineering calculators that write their own Methods paragraph (equations, parameter table, `[@key]` citations) and insert it into a manuscript together with the BibTeX entries it cites:
+
+- RMR89 with orientation adjustment and GSI ≈ RMR89′ − 5
+- Q-system with equivalent dimension, unsupported span, bolt length, roof pressure, Qw, and GSI from Q′
+- GSI quantification (1.5·JCond89 + RQD/2) compared with the RMR and Q correlations
+- Generalised Hoek–Brown (2002), rock mass modulus (Hoek & Diederichs 2006), equivalent Mohr–Coulomb c′, φ′
+- Kirsch boundary stresses with Russenes, Tao, brittleness, Wet and PES rockburst criteria, and depth of brittle failure (Martin et al. 1999)
+- Convergence–confinement ground reaction curve (Mohr–Coulomb) with squeezing class
+- Dynamic support energy demand and factor of safety (Canadian Rockburst Support Handbook)
+- Stability graph N′ = Q′·A·B·C and hydraulic radius
+
+Hoek–Brown results were checked against RocLab values, and the closed-form Mohr–Coulomb fit against a numerical least-squares fit. DOIs of the method references were verified against Crossref.
+
 ## Privacy model
 
 This is a static site with no backend. Your keys, chats, manuscripts and PDFs never leave your browser except for the requests you make to the AI provider you chose and the metadata lookups sent to OpenAlex and Crossref (search terms, DOIs and reference titles). Use API keys with a spending limit.
@@ -52,6 +67,6 @@ Push to `main`. The workflow in `.github/workflows/deploy.yml` builds and publis
 1. ✅ Foundation — key vault, multi-provider chat, mining agents
 2. ✅ Manuscript editor & Q1 templates — IMRaD editor, DOCX + LaTeX + BibTeX export
 3. ✅ Literature — OpenAlex/Crossref search, DOI verification, literature matrix, PDF RAG
-4. Methods library — RMR/Q/GSI/Hoek–Brown, rockburst criteria, support design calculators
+4. ✅ Methods library — RMR/Q/GSI/Hoek–Brown, rockburst criteria, support design calculators
 5. Automation pipeline — idea → draft → Reviewer 2 → revision, consistency checker, Q1 checklist
 6. Sync & polish — private GitHub sync, version history, cost tracking, PWA

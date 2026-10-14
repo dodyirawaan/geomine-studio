@@ -76,8 +76,17 @@ function matchClose(s: string, openAt: number, open: string, close: string): num
   return s.length
 }
 
+// LaTeX accent commands → combining marks, e.g. \'{n} → ń, \"a → ä.
+const ACCENTS: Record<string, string> = { "'": '\u0301', '"': '\u0308', '`': '\u0300', '^': '\u0302', '~': '\u0303', '=': '\u0304', '.': '\u0307', c: '\u0327', v: '\u030c', u: '\u0306', H: '\u030b' }
+const LETTERS: Record<string, string> = { ss: 'ß', o: 'ø', O: 'Ø', l: 'ł', L: 'Ł', ae: 'æ', AE: 'Æ', aa: 'å', AA: 'Å' }
+
 function clean(v: string): string {
   return v
+    .replace(/\\([`'"^~=.]|[cvuH](?=[\s{]))\s*(?:\{\s*([A-Za-z]|\\i)\s*\}|([A-Za-z]|\\i))/g, (_, acc: string, a?: string, b?: string) => {
+      const ch = (a ?? b)!
+      return ((ch === '\\i' ? 'i' : ch) + ACCENTS[acc]).normalize('NFC')
+    })
+    .replace(/\{?\\(ss|o|O|l|L|ae|AE|aa|AA)\}?(?![A-Za-z])/g, (_, c: string) => LETTERS[c])
     .replace(/\\&/g, '&')
     .replace(/\\(?:textit|textbf|emph)\{([^}]*)\}/g, '$1')
     .replace(/[{}]/g, '')

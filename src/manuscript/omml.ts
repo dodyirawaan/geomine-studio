@@ -52,7 +52,7 @@ function tokenize(src: string): string[] {
       out.push(m[0])
       i += m[0].length
     } else {
-      out.push(c)
+      out.push(c === "'" ? '′' : c)
       i++
     }
   }

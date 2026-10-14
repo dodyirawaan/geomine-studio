@@ -3,6 +3,7 @@ import ChatPage from './pages/Chat'
 import Dashboard from './pages/Dashboard'
 import EditorPage from './pages/Editor'
 import LiteraturePage from './pages/literature/Literature'
+import MethodsPage from './pages/Methods'
 import ManuscriptsPage from './pages/Manuscripts'
 import SettingsPage from './pages/Settings'
 import { useVault } from './store/vault'
@@ -11,6 +12,7 @@ const NAV = [
   { to: '/', label: 'Home', end: true },
   { to: '/manuscripts', label: 'Manuscripts', end: false },
   { to: '/literature', label: 'Literature', end: false },
+  { to: '/methods', label: 'Methods', end: false },
   { to: '/chat', label: 'Assistant', end: false },
   { to: '/settings', label: 'Settings', end: false },
 ]
@@ -45,6 +47,7 @@ export default function App() {
           <Route path="/manuscripts" element={<Page><ManuscriptsPage /></Page>} />
           <Route path="/manuscripts/:id" element={<EditorPage />} />
           <Route path="/literature" element={<Page><LiteraturePage /></Page>} />
+          <Route path="/methods" element={<Page><MethodsPage /></Page>} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/chat/:convId" element={<ChatPage />} />
           <Route path="/settings" element={<Page><SettingsPage /></Page>} />

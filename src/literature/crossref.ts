@@ -85,10 +85,21 @@ function describe(it: CrossrefItem): VerifyResult['found'] {
   return { title: m.title, year: m.year, authors: m.authors.slice(0, 3).join(', ') + (m.authors.length > 3 ? ' et al.' : ''), venue: m.venue }
 }
 
+const plain = (s: string) =>
+  s
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+
+/** First author matches, allowing compound family names ("Duncan Fama" vs "Fama") and missing diacritics. */
 function familyMatches(e: BibEntry, it: CrossrefItem): boolean {
-  const ours = familyNames(e)[0]?.toLowerCase()
+  const ours = plain(familyNames(e)[0] ?? '')
   if (!ours) return true
-  return (it.author ?? []).some((a) => (a.family ?? a.name ?? '').toLowerCase().includes(ours))
+  const last = ours.split(/\s+/).pop()!
+  return (it.author ?? []).some((a) => {
+    const theirs = plain(a.family ?? a.name ?? '')
+    return !!theirs && (theirs.includes(last) || ours.includes(theirs))
+  })
 }
 
 /**

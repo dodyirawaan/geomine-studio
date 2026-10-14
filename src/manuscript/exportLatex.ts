@@ -13,11 +13,11 @@ const MATH: Record<string, string> = {
   α: '\\alpha ', β: '\\beta ', γ: '\\gamma ', δ: '\\delta ', ε: '\\varepsilon ', η: '\\eta ', θ: '\\theta ', κ: '\\kappa ',
   λ: '\\lambda ', μ: '\\mu ', ν: '\\nu ', π: '\\pi ', ρ: '\\rho ', σ: '\\sigma ', τ: '\\tau ', φ: '\\varphi ', ϕ: '\\phi ',
   ψ: '\\psi ', ω: '\\omega ', Δ: '\\Delta ', Σ: '\\Sigma ', Φ: '\\Phi ', Ω: '\\Omega ', '≤': '\\le ', '≥': '\\ge ',
-  '±': '\\pm ', '×': '\\times ', '≈': '\\approx ', '→': '\\rightarrow ', '·': '\\cdot ', '−': '-', '∞': '\\infty ',
+  '±': '\\pm ', '×': '\\times ', '≈': '\\approx ', '→': '\\rightarrow ', '·': '\\cdot ', '−': '-', '∞': '\\infty ', '≳': '\\gtrsim ', '½': '\\tfrac{1}{2}', '⅓': '\\tfrac{1}{3}', '¼': '\\tfrac{1}{4}', '¾': '\\tfrac{3}{4}', '≲': '\\lesssim ', '≠': '\\neq ', '√': '\\surd ',
   '°': '^{\\circ}', '¹': '^{1}', '²': '^{2}', '³': '^{3}', '⁻': '^{-}',
   '₀': '_{0}', '₁': '_{1}', '₂': '_{2}', '₃': '_{3}', '₄': '_{4}', '₅': '_{5}', '₆': '_{6}', '₇': '_{7}', '₈': '_{8}', '₉': '_{9}',
 }
-const TEXT: Record<string, string> = { '–': '--', '—': '---', '‘': '`', '’': "'", '“': '``', '”': "''", '\u00a0': '~' }
+const TEXT: Record<string, string> = { '′': "'", '″': "''", '–': '--', '—': '---', '‘': '`', '’': "'", '“': '``', '”': "''", '\u00a0': '~' }
 
 export function escapeLatex(s: string): string {
   return s

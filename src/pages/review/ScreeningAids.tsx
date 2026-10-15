@@ -1,5 +1,6 @@
 import { Download, Gauge, Upload } from 'lucide-react'
 import { useState } from 'react'
+import { explainError } from '../../ai/errors'
 import { Badge, Button, Card, Select } from '../../components/ui'
 import { downloadBlob } from '../../lib/download'
 import { castVote, myDecision } from '../../review/dual'
@@ -154,7 +155,7 @@ export function ExchangeCard({ p, save }: { p: ReviewProject; save: Save }) {
       }))
       setStatus(`${res.votes.size} decisions imported from ${res.tool}${res.unmatched ? `; ${res.unmatched} rows did not match a record` : ''}${res.undecided ? `; ${res.undecided} rows without a decision` : ''}.`)
     } catch (e) {
-      setStatus((e as Error).message)
+      setStatus(explainError(e))
     }
   }
 

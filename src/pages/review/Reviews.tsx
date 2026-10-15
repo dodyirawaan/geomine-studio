@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { journalsByTopic } from '../../ai/prompts'
 import { KeywordBank } from '../../components/KeywordBank'
+import { LiveTopics } from '../../components/LiveTopics'
 import { ReviewSuggestions } from '../../components/ReviewSuggestions'
 import { Badge, Button, Card, Input, Label, PageHeader, Select } from '../../components/ui'
 import { REVIEW_METHODS } from '../../review/methods'
@@ -37,6 +38,10 @@ export default function ReviewsPage() {
           </a>
         }
       />
+
+      <Card title="Current review topics (OpenAlex)">
+        <LiveTopics />
+      </Card>
 
       <Card title="Suggested review topics">
         <ReviewSuggestions />

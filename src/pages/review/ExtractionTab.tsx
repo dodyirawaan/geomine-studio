@@ -1,7 +1,10 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { buildSystemPrompt } from '../../ai/prompts'
+import { explainError } from '../../ai/errors'
+import { buildTaskPrompt } from '../../ai/prompts'
+import { asRateLimit } from '../../ai/rateLimit'
 import { useLLM } from '../../ai/useLLM'
+import { TaskModel } from '../../components/TaskModel'
 import { Badge, Button, Card, Select } from '../../components/ui'
 import { shortCite } from '../../literature/library'
 import { MATRIX_COLUMNS, matrixRequest, parseMatrixReply } from '../../literature/prompts'
@@ -15,7 +18,8 @@ import { db, type Paper } from '../../store/db'
 import { useIncludedPapers } from './usePapers'
 
 export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
-  const llm = useLLM()
+  const llm = useLLM('extraction')
+  const llmQ = useLLM('appraisal')
   const m = methodById(p.method)
   const inc = includedRecords(p, m.fullText)
   const { papers } = useIncludedPapers(p)
@@ -36,7 +40,7 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
       const chunks = await db.chunks.where('paperId').equals(paper.id).sortBy('id')
       return { kind: 'fulltext', text: chunks.map((c) => c.text).join('\n') }
     }
-    if (!paper.abstract) throw new Error('no abstract or PDF text — attach the PDF in the Library')
+    if (!paper.abstract) throw new Error('There is no abstract or PDF text to read. Attach the PDF in the Library.')
     return { kind: 'abstract' }
   }
 
@@ -50,10 +54,14 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
       setBusy(`Extracting ${i + 1}/${todo.length}: ${shortCite(paper)}`)
       try {
         const source = await sourceOf(paper)
-        const { text } = await llm.run(buildSystemPrompt('literature', ''), matrixRequest(paper, source, p.protocol.questions.join(' ')), { feature: 'Review: extraction' })
+        const { text } = await llm.run(buildTaskPrompt(), matrixRequest(paper, source, p.protocol.questions.join(' ')), { feature: 'Review: extraction', light: true })
         await db.papers.update(paper.id, { matrix: parseMatrixReply(text), matrixSource: source.kind, updatedAt: Date.now() })
       } catch (e) {
-        setErrors((x) => [...x, `${shortCite(paper)}: ${(e as Error).message}`])
+        if (asRateLimit(e)?.daily) {
+          setErrors((x) => [...x, explainError(e)])
+          break
+        }
+        setErrors((x) => [...x, `${shortCite(paper)}: ${explainError(e)}`])
       }
     }
     setBusy('')
@@ -69,14 +77,18 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
       setBusy(`Appraising ${i + 1}/${todo.length}: ${shortCite(paper)}`)
       try {
         const source = await sourceOf(paper)
-        const { text } = await llm.run(buildSystemPrompt('literature', ''), qualityRequest(paper, source), { feature: 'Review: quality appraisal' })
+        const { text } = await llmQ.run(buildTaskPrompt(), qualityRequest(paper, source), { feature: 'Review: quality appraisal', light: true })
         const { scores, reasons } = parseQuality(text)
         await save((cur) => ({
           quality: { ...cur.quality, [paper.id]: scores },
           qualityAi: { ...cur.qualityAi, [paper.id]: { reasons, source: source.kind, at: Date.now() } },
         }))
       } catch (e) {
-        setErrors((x) => [...x, `${shortCite(paper)}: ${(e as Error).message}`])
+        if (asRateLimit(e)?.daily) {
+          setErrors((x) => [...x, explainError(e)])
+          break
+        }
+        setErrors((x) => [...x, `${shortCite(paper)}: ${explainError(e)}`])
       }
     }
     setBusy('')
@@ -89,6 +101,16 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
       quality: { ...cur.quality, [paperId]: { ...cur.quality[paperId], [crit]: v } },
       ...(cur.qualityAi?.[paperId] ? { qualityAi: { ...cur.qualityAi, [paperId]: { ...cur.qualityAi[paperId], checked: true } } } : {}),
     }))
+  const resetScores = (paper: Paper) => {
+    if (!window.confirm(`Clear the quality scores for ${shortCite(paper)}? The study can then be appraised again with AI.`)) return
+    save((cur) => {
+      const quality = { ...cur.quality }
+      const qualityAi = { ...cur.qualityAi }
+      delete quality[paper.id]
+      delete qualityAi[paper.id]
+      return { quality, qualityAi }
+    })
+  }
   const unscored = papers?.filter((x) => !Object.keys(p.quality[x.id] ?? {}).length).length ?? 0
   const unchecked = papers?.filter((x) => p.qualityAi?.[x.id] && !p.qualityAi[x.id].checked).length ?? 0
   const extracted = papers?.filter((x) => x.matrix).length ?? 0
@@ -124,6 +146,7 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
             )}
             <span className="text-xs text-stone-500">{busy || `${llm.missing || llm.label} · uses the PDF text when attached, otherwise the abstract`}</span>
           </div>
+          <TaskModel llm={llm} className="mb-3" />
           {errors.length > 0 && <pre className="mb-2 text-xs whitespace-pre-wrap text-red-700">{errors.join('\n')}</pre>}
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-left text-xs">
@@ -165,12 +188,13 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
                 Stop
               </Button>
             ) : (
-              <Button variant="ghost" disabled={!llm.ready || !unscored} onClick={appraise}>
+              <Button variant="ghost" disabled={!llmQ.ready || !unscored} onClick={appraise}>
                 Appraise {unscored} with AI
               </Button>
             )}
-            <span className="text-xs text-stone-500">{busy || `${llm.missing || llm.label} · AI proposes each score with a reason; you check or change it`}</span>
+            <span className="text-xs text-stone-500">{busy || `${llmQ.missing || llmQ.label} · AI proposes each score with a reason; you check or change it`}</span>
           </div>
+          <TaskModel llm={llmQ} className="mb-2" />
           {errors.length > 0 && <pre className="mb-2 text-xs whitespace-pre-wrap text-red-700">{errors.join('\n')}</pre>}
           <p className="mb-2 text-xs text-stone-500">
             0 = not met · 1 = partly · 2 = fully met. Scores weight the synthesis; they do not exclude studies.
@@ -198,6 +222,11 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
                     <tr key={x.id} className="border-t border-stone-200 align-top dark:border-stone-800">
                       <td className="py-1 pr-2 font-medium whitespace-nowrap">
                         {shortCite(x)}
+                        {Object.keys(s).length > 0 && !busy && (
+                          <button className="ml-2 font-normal text-stone-400 hover:text-red-700 hover:underline" title="Clear these scores so the study can be appraised again with AI" onClick={() => resetScores(x)}>
+                            Reset
+                          </button>
+                        )}
                         {ai && (
                           <span className="block font-normal text-stone-400">
                             AI · {ai.source}

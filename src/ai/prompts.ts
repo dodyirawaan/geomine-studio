@@ -252,3 +252,12 @@ export function buildSystemPrompt(mode: ModeId, journal: JournalId | ''): string
   if (j) parts.push(journalPrompt(j))
   return parts.join('\n\n')
 }
+
+/**
+ * Short system prompt for repeated structured tasks (screening, eligibility, extraction, appraisal). The task itself is
+ * spelled out in the request, so the long co-author prompt would only add ~2,500 input tokens to every call.
+ */
+export function buildTaskPrompt(): string {
+  return `You are GeoMine, a careful research assistant for evidence synthesis in mining geotechnics and rock engineering (rock mass classification, rockburst and mining seismicity, ground support, coal ground control, backfill, IR/AE monitoring, numerical modelling, ML for geotechnics).
+Follow the output format in the request exactly. Judge only from the text provided; never invent data, values or references. When the text does not report something, say so.`
+}

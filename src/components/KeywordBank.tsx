@@ -1,5 +1,6 @@
 import { Plus, Search, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
+import { explainError } from '../ai/errors'
 import { countWorks } from '../literature/openalex'
 import { readJson, writeJson } from '../lib/storage'
 import { buildQuery, KEYWORD_BLOCKS, TOPICS, type KeywordBlock } from '../review/keywords'
@@ -68,7 +69,7 @@ export function KeywordBank({ onUse, useLabel = 'Use this query' }: { onUse?: (q
       const [n, reviews] = await Promise.all([countWorks(query, { apiKey: secrets.openalexKey }), countWorks(query, { apiKey: secrets.openalexKey, reviewsOnly: true })])
       setHits({ query, n, reviews })
     } catch (e) {
-      setError((e as Error).message)
+      setError(explainError(e))
     } finally {
       setBusy(false)
     }

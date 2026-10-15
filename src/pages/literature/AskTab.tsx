@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from 'react'
 import { buildSystemPrompt } from '../../ai/prompts'
 import { useLLM } from '../../ai/useLLM'
 import { Markdown } from '../../components/Markdown'
+import { TaskModel } from '../../components/TaskModel'
 import { Button, Card } from '../../components/ui'
 import { shortCite } from '../../literature/library'
 import { askRequest } from '../../literature/prompts'
@@ -17,7 +18,7 @@ interface Turn {
 }
 
 export default function AskTab({ papers, selected }: { papers: Paper[]; selected: Set<string> }) {
-  const llm = useLLM()
+  const llm = useLLM('ask')
   const { inScope, picker } = useScope(papers, selected)
   const [question, setQuestion] = useState('')
   const [turns, setTurns] = useState<Turn[]>([])
@@ -71,6 +72,7 @@ export default function AskTab({ papers, selected }: { papers: Paper[]; selected
             <span className="text-xs text-stone-500">
               Searching {withPdf} PDF{withPdf === 1 ? '' : 's'} and {inScope.filter((p) => p.abstract).length} abstracts · {llm.missing || llm.label}
             </span>
+            <TaskModel llm={llm} className="w-full" />
           </div>
           <div className="flex gap-2">
             <textarea

@@ -1,10 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { explainError } from '../../ai/errors'
 import { buildSystemPrompt } from '../../ai/prompts'
 import { useLLM } from '../../ai/useLLM'
 import { Chart } from '../../components/Chart'
 import { Markdown } from '../../components/Markdown'
+import { TaskModel } from '../../components/TaskModel'
 import { Button, Card, Input, Label, Select } from '../../components/ui'
 import { downloadText, slug } from '../../lib/download'
 import { insertIntoManuscript } from '../../methods'
@@ -128,7 +130,7 @@ function DataTab({ exp, table, update }: { exp: Experiment; table: Table | null;
       parseCsv(csv, f.name)
       update({ csv, datasetName: f.name, synthetic: false, result: undefined })
     } catch (e) {
-      setError((e as Error).message)
+      setError(explainError(e))
     }
   }
 
@@ -673,7 +675,7 @@ function InsertCard({ exp, blocks }: { exp: Experiment; blocks: Block[] }) {
 }
 
 function Interpretation({ exp, update }: { exp: Experiment; update: (p: Partial<Experiment>) => void }) {
-  const llm = useLLM()
+  const llm = useLLM('vlabReport')
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -711,7 +713,7 @@ function Interpretation({ exp, update }: { exp: Experiment; update: (p: Partial<
       )
       await update({ interpretation: out })
     } catch (e) {
-      setError((e as Error).message)
+      setError(explainError(e))
     } finally {
       setBusy(false)
     }
@@ -723,6 +725,7 @@ function Interpretation({ exp, update }: { exp: Experiment; update: (p: Partial<
       <Button variant="ghost" className="text-xs" disabled={!llm.ready || busy} onClick={run}>
         {busy ? 'Writing…' : exp.interpretation ? 'Write again' : 'Interpret the results'}
       </Button>
+      <TaskModel llm={llm} className="mt-2" />
       {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
       {shown && (
         <div className="mt-3 rounded-md border border-stone-200 p-3 dark:border-stone-800">

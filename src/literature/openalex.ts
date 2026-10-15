@@ -70,9 +70,19 @@ function toMeta(w: RawWork): PaperMeta {
 async function get(path: string, params: Record<string, string>, apiKey?: string): Promise<unknown> {
   const q = new URLSearchParams(params)
   if (apiKey) q.set('api_key', apiKey)
-  const res = await fetch(`${BASE}${path}?${q}`)
+  let res = await fetch(`${BASE}${path}?${q}`)
+  // A 429 without a used-up daily quota is a short burst limit, and 502–504 a busy server: wait a moment and try again.
+  const transient = (r: Response) => (r.status === 429 && r.headers.get('x-ratelimit-remaining') !== '0') || [502, 503, 504].includes(r.status)
+  for (let i = 0; i < 3 && transient(res); i++) {
+    await new Promise((r) => setTimeout(r, 1500 * (i + 1)))
+    res = await fetch(`${BASE}${path}?${q}`)
+  }
   if (res.status === 429) throw new Error('OpenAlex daily quota reached. Add a free OpenAlex API key in Settings, or try again tomorrow.')
-  if (!res.ok) throw new Error(`OpenAlex: HTTP ${res.status}`)
+  if (!res.ok) {
+    // OpenAlex explains outages and limits in the body (e.g. "Anonymous search is paused…"); show that instead of a code.
+    const body = (await res.json().catch(() => null)) as { message?: string } | null
+    throw new Error(body?.message ? `OpenAlex: ${body.message}` : 'OpenAlex is not responding right now. Try again in a few minutes.')
+  }
   return res.json()
 }
 
@@ -201,4 +211,13 @@ export async function countWorks(query: string, o: { fromYear?: number; reviewsO
   filters.push(o.reviewsOnly ? 'type:review' : 'type:article|review')
   const body = (await get('/works', { filter: filters.join(','), 'per-page': '1', select: 'id' }, o.apiKey)) as { meta: { count: number } }
   return body.meta.count
+}
+
+/** OpenAlex keywords of the works matching a title/abstract query in a year range, most frequent first. */
+export async function keywordCounts(query: string, fromYear: number, toYear: number, apiKey?: string): Promise<{ id: string; name: string; count: number }[]> {
+  const filters = [`title_and_abstract.search:${query.replace(/,/g, ' ').replace(/\*/g, '').trim()}`, `publication_year:${fromYear}-${toYear}`, 'type:article|review']
+  const body = (await get('/works', { filter: filters.join(','), group_by: 'keywords.id', 'per-page': '200' }, apiKey)) as {
+    group_by: { key: string; key_display_name: string; count: number }[]
+  }
+  return body.group_by.map((g) => ({ id: g.key, name: g.key_display_name, count: g.count }))
 }

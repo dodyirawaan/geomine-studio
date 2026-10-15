@@ -1,5 +1,6 @@
 import { Download, Upload, Users } from 'lucide-react'
 import { useState } from 'react'
+import { explainError } from '../../ai/errors'
 import { Badge, Button, Card, Input } from '../../components/ui'
 import { downloadBlob } from '../../lib/download'
 import { agreement, blindSheet, castVote, DECISIONS, disableDual, enableDual, kappaLabel, readSheet, vote, type Reviewer } from '../../review/dual'
@@ -52,7 +53,7 @@ export function DualCard({ p, save, aiLabel }: { p: ReviewProject; save: Save; a
           '.',
       )
     } catch (e) {
-      setStatus((e as Error).message)
+      setStatus(explainError(e))
     }
   }
 

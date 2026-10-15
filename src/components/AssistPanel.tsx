@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { explainError } from '../ai/errors'
 import { buildSystemPrompt } from '../ai/prompts'
 import { PROVIDER_IDS, PROVIDERS } from '../ai/providers'
 import type { ProviderId } from '../ai/types'
@@ -88,7 +89,7 @@ export function AssistPanel({
       setNotice([result.notice, result.usage && `${result.usage.inputTokens ?? '?'} in · ${result.usage.outputTokens ?? '?'} out`].filter(Boolean).join(' · '))
     } catch (e) {
       if (ctrl.signal.aborted) setNotice('Stopped.')
-      else setError((e as Error).message)
+      else setError(explainError(e))
     } finally {
       setBusy(false)
       abortRef.current = null

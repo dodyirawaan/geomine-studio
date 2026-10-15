@@ -33,5 +33,5 @@ export async function httpError(res: Response, provider: string): Promise<Error>
   } catch {
     detail = res.statusText
   }
-  return new Error(`${provider} ${res.status}: ${detail}`)
+  return Object.assign(new Error(`${provider} ${res.status}: ${detail}`), { status: res.status })
 }

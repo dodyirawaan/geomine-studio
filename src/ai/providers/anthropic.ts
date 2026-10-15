@@ -31,7 +31,10 @@ export const anthropic: Provider = {
       {
         model: req.model,
         max_tokens: req.maxTokens,
-        system: req.system,
+        // Prompt caching: a continuing conversation caches everything up to the last message; a one-off request caches
+        // only the system prompt, which repeats across calls (cached reads cost a tenth of normal input tokens).
+        system: req.conversation ? req.system : [{ type: 'text' as const, text: req.system, cache_control: { type: 'ephemeral' as const } }],
+        ...(req.conversation ? { cache_control: { type: 'ephemeral' as const } } : {}),
         messages: req.messages,
         ...(SUPPORTS_EFFORT.test(req.model) && req.effort ? { output_config: { effort: req.effort } } : {}),
         ...(useFallback ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),

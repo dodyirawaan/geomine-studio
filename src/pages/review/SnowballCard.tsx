@@ -1,5 +1,6 @@
 import { ArrowDownLeft, ArrowUpRight } from 'lucide-react'
 import { useState } from 'react'
+import { explainError } from '../../ai/errors'
 import { Badge, Button, Card, Select } from '../../components/ui'
 import { methodById } from '../../review/prompts'
 import type { Save } from '../../review/project'
@@ -37,7 +38,7 @@ export function SnowballCard({ p, save }: { p: ReviewProject; save: Save }) {
       setMinLinks(1)
       setProgress('')
     } catch (e) {
-      setError((e as Error).message)
+      setError(explainError(e))
       setProgress('')
     } finally {
       setBusy(false)

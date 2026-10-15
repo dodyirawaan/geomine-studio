@@ -1,5 +1,6 @@
 // AI requests for review projects: protocol drafting, title/abstract screening suggestions, and section writing.
 import { JOURNALS } from '../ai/prompts'
+import { fullTextForPrompt } from '../literature/fulltext'
 import type { Paper } from '../store/db'
 import { QUALITY_CRITERIA, REVIEW_METHODS, type OutlineItem, type ReviewMethod } from './methods'
 import type { PrismaCounts } from './prisma'
@@ -90,9 +91,10 @@ export function parseScreening(text: string): Record<string, { decision: Decisio
 const MAX_ELIGIBILITY_TEXT = 60000
 
 export function eligibilityRequest(p: Protocol, r: ReviewRecord, source: { kind: 'abstract' } | { kind: 'fulltext'; text: string }, reasons: string[]): string {
+  const ft = source.kind === 'fulltext' ? fullTextForPrompt(source.text, MAX_ELIGIBILITY_TEXT) : null
   const body =
-    source.kind === 'fulltext'
-      ? `## Full text (extracted from PDF${source.text.length > MAX_ELIGIBILITY_TEXT ? ', truncated' : ''})\n${source.text.slice(0, MAX_ELIGIBILITY_TEXT)}`
+    ft
+      ? `## Full text (extracted from PDF, without the reference list${ft.truncated ? ', truncated' : ''})\n${ft.text}`
       : `## Abstract (the full text is not available)\n${r.meta.abstract ?? '(no abstract available)'}`
   return `Assess whether this report is eligible for a literature review at the full-text stage. It already passed title and abstract screening.
 
@@ -128,9 +130,10 @@ export function parseEligibility(text: string): { decision: 'include' | 'exclude
 const MAX_APPRAISAL_TEXT = 60000
 
 export function qualityRequest(paper: Paper, source: { kind: 'abstract' } | { kind: 'fulltext'; text: string }): string {
+  const ft = source.kind === 'fulltext' ? fullTextForPrompt(source.text, MAX_APPRAISAL_TEXT) : null
   const body =
-    source.kind === 'fulltext'
-      ? `## Full text (extracted from PDF${source.text.length > MAX_APPRAISAL_TEXT ? ', truncated' : ''})\n${source.text.slice(0, MAX_APPRAISAL_TEXT)}`
+    ft
+      ? `## Full text (extracted from PDF, without the reference list${ft.truncated ? ', truncated' : ''})\n${ft.text}`
       : `## Abstract (no full text available)\n${paper.abstract ?? '(no abstract available)'}`
   return `Appraise the methodological quality of this study for a systematic review in mining geotechnics.
 

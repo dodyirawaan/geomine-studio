@@ -1,18 +1,30 @@
 import { useCallback } from 'react'
 import { PROVIDERS } from './providers'
 import { withRateLimitRetry } from './rateLimit'
+import { TASKS, type TaskId } from './tasks'
 import type { ChatResult } from './types'
-import { useSettings } from '../store/settings'
+import { loadSettings, useSettings } from '../store/settings'
 import { useVault } from '../store/vault'
 
-/** One-shot requests with the user's current provider and model, for features outside the chat. */
-export function useLLM() {
+/** One-shot requests with the user's current provider and the model chosen for `task` (or the default model), for features outside the chat. */
+export function useLLM(task: TaskId) {
   const { status, secrets } = useVault()
-  const [settings] = useSettings()
+  const [settings, update] = useSettings()
   const provider = settings.provider
-  const model = settings.models[provider]
+  const defaultModel = settings.models[provider]
+  const taskModel = settings.taskModels?.[provider]?.[task] ?? ''
+  const model = taskModel || defaultModel
   const apiKey = secrets[provider]
   const ready = status === 'unlocked' && !!apiKey && !!model
+
+  /** Chooses the model for this task; '' returns to the default model. Merged into the stored settings so other tasks' choices are kept. */
+  const setModel = useCallback(
+    (id: string) => {
+      const all = loadSettings().taskModels ?? {}
+      update({ taskModels: { ...all, [provider]: { ...all[provider], [task]: id || undefined } } })
+    },
+    [provider, task, update],
+  )
 
   const run = useCallback(
     async (
@@ -45,5 +57,20 @@ export function useLLM() {
   const missing =
     status !== 'unlocked' ? 'Unlock your key vault in Settings to use AI features.' : !apiKey ? `Add a ${PROVIDERS[provider].label} key in Settings.` : !model ? 'Choose a model in Settings.' : ''
 
-  return { ready, run, missing, label: `${PROVIDERS[provider].label} · ${model || 'no model'}` }
+  return {
+    ready,
+    run,
+    missing,
+    label: PROVIDERS[provider].label,
+    task,
+    tier: TASKS[task].tier,
+    provider,
+    apiKey,
+    model,
+    defaultModel,
+    taskModel,
+    setModel,
+  }
 }
+
+export type LLM = ReturnType<typeof useLLM>

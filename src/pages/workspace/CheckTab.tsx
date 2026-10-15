@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { buildSystemPrompt } from '../../ai/prompts'
 import { useLLM } from '../../ai/useLLM'
+import { TaskModel } from '../../components/TaskModel'
 import { Button, Card } from '../../components/ui'
 import { checkManuscript, type Issue, type Severity } from '../../pipeline/check'
 import { consistencyRequest, parseFindings, type AiFinding } from '../../pipeline/prompts'
@@ -79,7 +80,7 @@ function IssueRow({ m, issue }: { m: Manuscript; issue: Issue }) {
 }
 
 function AiCheck({ m }: { m: Manuscript }) {
-  const llm = useLLM()
+  const llm = useLLM('consistency')
   const [findings, setFindings] = useState<AiFinding[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -115,6 +116,7 @@ function AiCheck({ m }: { m: Manuscript }) {
           {findings ? 'Run again' : 'Run AI check'}
         </Button>
       )}
+      <TaskModel llm={llm} className="mt-2" />
       {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
       {findings && (
         <ul className="mt-3 space-y-2">

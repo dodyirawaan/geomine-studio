@@ -1,5 +1,6 @@
 // Requests for the literature matrix, its synthesis, and questions answered from the library.
 import type { Paper } from '../store/db'
+import { fullTextForPrompt } from './fulltext'
 import type { Passage } from './retrieval'
 
 export interface MatrixColumn {
@@ -23,9 +24,10 @@ const MAX_FULLTEXT = 60000
 
 export function matrixRequest(p: Paper, source: { kind: 'abstract' } | { kind: 'fulltext'; text: string }, topic: string): string {
   const cols = MATRIX_COLUMNS.map((c) => `- "${c.id}": ${c.instruction}`).join('\n')
+  const ft = source.kind === 'fulltext' ? fullTextForPrompt(source.text, MAX_FULLTEXT) : null
   const body =
-    source.kind === 'fulltext'
-      ? `## Full text (extracted from PDF${source.text.length > MAX_FULLTEXT ? ', truncated' : ''})\n${source.text.slice(0, MAX_FULLTEXT)}`
+    ft
+      ? `## Full text (extracted from PDF, without the reference list${ft.truncated ? ', truncated' : ''})\n${ft.text}`
       : `## Abstract\n${p.abstract ?? '(no abstract available)'}`
   return `Extract a literature-matrix row for this paper.
 

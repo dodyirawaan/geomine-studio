@@ -29,6 +29,8 @@ export interface ChatRequest {
   feature?: string
   /** Short classification-style task (e.g. screening): ask the model to think briefly to save tokens and quota. */
   light?: boolean
+  /** A conversation that will continue: cache the whole prompt so the next turn re-reads it cheaply (Anthropic). */
+  conversation?: boolean
 }
 
 export interface ChatResult {

@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { readJson, writeJson } from '../lib/storage'
+import type { TaskId } from '../ai/tasks'
 import type { Effort, ModelInfo, ProviderId } from '../ai/types'
 
 const SETTINGS_KEY = 'gm.settings'
@@ -11,6 +12,8 @@ export interface Settings {
   /** Reasoning depth for Claude models that support `output_config.effort`. */
   anthropicEffort: Effort
   maxTokens: number
+  /** Per-task model overrides for each provider; a task without one uses `models`. */
+  taskModels?: Partial<Record<ProviderId, Partial<Record<TaskId, string>>>>
 }
 
 export const DEFAULT_SETTINGS: Settings = {

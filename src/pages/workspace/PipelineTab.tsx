@@ -1,8 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState, type ReactNode } from 'react'
+import { explainError } from '../../ai/errors'
 import { buildSystemPrompt } from '../../ai/prompts'
 import { useLLM } from '../../ai/useLLM'
 import { Markdown } from '../../components/Markdown'
+import { TaskModel } from '../../components/TaskModel'
 import { Button, Card } from '../../components/ui'
 import { downloadText, slug } from '../../lib/download'
 import { ASSIST_ACTIONS, buildAssistMessage, modeFor } from '../../manuscript/assist'
@@ -25,7 +27,7 @@ async function saveRun(id: string, patch: Partial<PipelineRun> | ((r: PipelineRu
 const DRAFT_ORDER = { body: 0, abstract: 1, highlights: 2, keywords: 3, back: 4 } as const
 
 export default function PipelineTab({ m }: { m: Manuscript }) {
-  const llm = useLLM()
+  const llm = useLLM('pipeline')
   const run = useLiveQuery(async () => (await db.runs.get(m.id)) ?? EMPTY_RUN(m.id), [m.id])
   const [busy, setBusy] = useState<string | null>(null)
   const [progress, setProgress] = useState('')
@@ -53,7 +55,7 @@ export default function PipelineTab({ m }: { m: Manuscript }) {
       setProgress(ctrl.signal.aborted ? 'Stopped.' : '')
     } catch (e) {
       if (ctrl.signal.aborted) setProgress('Stopped.')
-      else setError((e as Error).message)
+      else setError(explainError(e))
     } finally {
       setBusy(null)
       setStream('')
@@ -148,6 +150,7 @@ export default function PipelineTab({ m }: { m: Manuscript }) {
         AI output is kept as <b>proposals</b>; nothing changes in the manuscript until you accept it, and a snapshot is saved first (History tab).
         <span className="ml-1 text-xs text-stone-500">{llm.missing || llm.label}</span>
       </p>
+      <TaskModel llm={llm} />
 
       {(busy || error || progress) && (
         <Card>

@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react'
-import { buildSystemPrompt } from '../../ai/prompts'
+import { explainError } from '../../ai/errors'
+import { buildSystemPrompt, buildTaskPrompt } from '../../ai/prompts'
 import { useLLM } from '../../ai/useLLM'
 import { Markdown } from '../../components/Markdown'
+import { TaskModel } from '../../components/TaskModel'
 import { Button, Card, Input } from '../../components/ui'
 import { downloadText } from '../../lib/download'
 import { readJson, writeJson } from '../../lib/storage'
@@ -17,7 +19,8 @@ function csvCell(s: string): string {
 }
 
 export default function MatrixTab({ papers, selected }: { papers: Paper[]; selected: Set<string> }) {
-  const llm = useLLM()
+  const llm = useLLM('matrix')
+  const llmS = useLLM('synthesis')
   const { inScope, picker } = useScope(papers, selected)
   const [topic, setTopicState] = useState(() => readJson(TOPIC_KEY, ''))
   const [preferFulltext, setPreferFulltext] = useState(true)
@@ -40,7 +43,7 @@ export default function MatrixTab({ papers, selected }: { papers: Paper[]; selec
     abortRef.current = ctrl
     setBusy('extract')
     setErrors([])
-    const system = buildSystemPrompt('literature', '')
+    const system = buildTaskPrompt()
     for (const [i, p] of todo.entries()) {
       if (ctrl.signal.aborted) break
       setProgress(`${i + 1}/${todo.length}: ${p.title}`)
@@ -52,10 +55,10 @@ export default function MatrixTab({ papers, selected }: { papers: Paper[]; selec
         } else if (!p.abstract) {
           throw new Error('no abstract or PDF text to extract from')
         }
-        const { text } = await llm.run(system, matrixRequest(p, source, topic), { signal: ctrl.signal, feature: 'Literature matrix' })
+        const { text } = await llm.run(system, matrixRequest(p, source, topic), { signal: ctrl.signal, feature: 'Literature matrix', light: true })
         await db.papers.update(p.id, { matrix: parseMatrixReply(text), matrixSource: source.kind, updatedAt: Date.now() })
       } catch (e) {
-        if (!ctrl.signal.aborted) setErrors((prev) => [...prev, `${shortCite(p)}: ${(e as Error).message}`])
+        if (!ctrl.signal.aborted) setErrors((prev) => [...prev, `${shortCite(p)}: ${explainError(e)}`])
       }
     }
     setProgress(ctrl.signal.aborted ? 'Stopped.' : 'Done.')
@@ -68,9 +71,9 @@ export default function MatrixTab({ papers, selected }: { papers: Paper[]; selec
     setBusy('synth')
     setSynthesis('')
     try {
-      await llm.run(buildSystemPrompt('gap', ''), synthesisRequest(rows, topic), { signal: ctrl.signal, onText: setSynthesis, feature: 'Literature synthesis' })
+      await llmS.run(buildSystemPrompt('gap', ''), synthesisRequest(rows, topic), { signal: ctrl.signal, onText: setSynthesis, feature: 'Literature synthesis' })
     } catch (e) {
-      if (!ctrl.signal.aborted) setSynthesis((s) => `${s}\n\n**Error:** ${(e as Error).message}`)
+      if (!ctrl.signal.aborted) setSynthesis((s) => `${s}\n\n**Error:** ${explainError(e)}`)
     } finally {
       setBusy(null)
     }
@@ -112,7 +115,7 @@ export default function MatrixTab({ papers, selected }: { papers: Paper[]; selec
                 <Button variant="ghost" disabled={!llm.ready || !inScope.length} onClick={() => window.confirm(`Re-extract all ${inScope.length} rows? This replaces existing rows.`) && extract(true)}>
                   Re-extract all
                 </Button>
-                <Button variant="ghost" disabled={!llm.ready || rows.length < 2} onClick={synthesize}>
+                <Button variant="ghost" disabled={!llmS.ready || rows.length < 2} onClick={synthesize}>
                   Synthesise themes & gaps
                 </Button>
                 <Button variant="ghost" disabled={!rows.length} onClick={exportCsv}>
@@ -124,6 +127,10 @@ export default function MatrixTab({ papers, selected }: { papers: Paper[]; selec
               </>
             )}
             <span className="text-xs text-stone-500">{llm.missing || llm.label}</span>
+          </div>
+          <TaskModel llm={llm} />
+          <div className="flex flex-wrap items-center gap-x-2 text-xs text-stone-500">
+            Synthesis: <TaskModel llm={llmS} />
           </div>
           {progress && <p className="text-xs text-stone-500">{progress}</p>}
           {errors.length > 0 && <pre className="text-xs whitespace-pre-wrap text-red-700">{errors.join('\n')}</pre>}

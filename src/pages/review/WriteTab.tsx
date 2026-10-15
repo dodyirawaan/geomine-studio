@@ -1,9 +1,11 @@
 import { AlertTriangle, CheckCircle2, FileText, Wand2, XCircle } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { explainError } from '../../ai/errors'
 import { buildSystemPrompt, type JournalId } from '../../ai/prompts'
 import { useLLM } from '../../ai/useLLM'
 import { Markdown } from '../../components/Markdown'
+import { TaskModel } from '../../components/TaskModel'
 import { Badge, Button, ButtonLink, Card, Label, Select } from '../../components/ui'
 import { paperToBibtex } from '../../literature/bib'
 import { CITE_RE, parseBibtex } from '../../manuscript/bibtex'
@@ -21,7 +23,7 @@ import { db } from '../../store/db'
 import { useIncludedPapers } from './usePapers'
 
 export function WriteTab({ p, save }: { p: ReviewProject; save: Save }) {
-  const llm = useLLM()
+  const llm = useLLM('reviewWriting')
   const m = methodById(p.method)
   const c = prismaCounts(p, m.fullText)
   const { included, papers } = useIncludedPapers(p)
@@ -93,7 +95,7 @@ export function WriteTab({ p, save }: { p: ReviewProject; save: Save }) {
     try {
       await task()
     } catch (e) {
-      setError((e as Error).message)
+      setError(explainError(e))
     } finally {
       setBusy('')
       setStream(null)
@@ -160,6 +162,7 @@ export function WriteTab({ p, save }: { p: ReviewProject; save: Save }) {
         <p className="mt-2 text-xs text-stone-500">
           {busy || llm.missing || `${llm.label}. Methods and the overview are written from your data without AI; the synthesis may cite only the ${papers?.length ?? 0} included studies.`}
         </p>
+        <TaskModel llm={llm} className="mt-2" />
         {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
       </Card>
 

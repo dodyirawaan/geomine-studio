@@ -1,6 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { explainError } from '../ai/errors'
+import { recentHistory } from '../ai/history'
 import { buildSystemPrompt, journalsByTopic, MODES, type JournalId, type ModeId } from '../ai/prompts'
 import { PROVIDER_IDS, PROVIDERS } from '../ai/providers'
 import type { ChatMessage, ProviderId } from '../ai/types'
@@ -73,10 +75,10 @@ export default function ChatPage() {
     await db.conversations.update(id, { updatedAt: Date.now() })
     setInput('')
 
-    const history: ChatMessage[] = [
+    const history: ChatMessage[] = recentHistory([
       ...(messages ?? []).filter((m) => !m.error).map((m) => ({ role: m.role, content: m.content })),
       { role: 'user', content },
-    ]
+    ])
 
     const ctrl = new AbortController()
     abortRef.current = ctrl
@@ -93,6 +95,7 @@ export default function ChatPage() {
           effort: settings.anthropicEffort,
           signal: ctrl.signal,
           feature: 'Assistant chat',
+          conversation: true,
         },
         (delta) => {
           acc += delta
@@ -114,7 +117,7 @@ export default function ChatPage() {
       await db.messages.add({
         convId: id,
         role: 'assistant',
-        content: aborted ? `${acc}\n\n> Stopped.` : `${acc ? `${acc}\n\n` : ''}**Error:** ${(e as Error).message}`,
+        content: aborted ? `${acc}\n\n> Stopped.` : `${acc ? `${acc}\n\n` : ''}**Error:** ${explainError(e)}`,
         provider,
         model,
         // A failed reply is shown but not sent back as context; a stopped one keeps its partial text.

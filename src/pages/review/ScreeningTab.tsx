@@ -1,7 +1,9 @@
 import { Bot, Check, ExternalLink, HelpCircle, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { buildSystemPrompt, type JournalId } from '../../ai/prompts'
+import { explainError } from '../../ai/errors'
+import { buildTaskPrompt } from '../../ai/prompts'
 import { useLLM } from '../../ai/useLLM'
+import { TaskModel } from '../../components/TaskModel'
 import { Badge, Button, Card, Input, Select } from '../../components/ui'
 import type { Save } from '../../review/project'
 import { castVote, isConflict, resolveConflict, vote, type Reviewer } from '../../review/dual'
@@ -23,7 +25,7 @@ function exclusionCodes(p: ReviewProject): { code: string; text: string }[] {
 }
 
 export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
-  const llm = useLLM()
+  const llm = useLLM('screening')
   const [filter, setFilter] = useState<Filter>('todo')
   const [q, setQ] = useState('')
   const [page, setPage] = useState(0)
@@ -134,7 +136,7 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
         const batch = todo.slice(i, i + size)
         const label = `AI screening ${Math.min(i + size, todo.length)} of ${todo.length}…`
         setProgress(label)
-        const { text } = await llm.run(buildSystemPrompt('literature', p.journal as JournalId), screeningRequest(p.protocol, batch), {
+        const { text } = await llm.run(buildTaskPrompt(), screeningRequest(p.protocol, batch), {
           feature: 'Review: screening',
           light: true,
           signal: ctrl.current.signal,
@@ -146,7 +148,7 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
       setProgress(stop.current ? 'Stopped.' : 'Suggestions ready — review them below.')
     } catch (e) {
       if ((e as Error).name === 'AbortError') setProgress('Stopped.')
-      else setError((e as Error).message)
+      else setError(explainError(e))
     } finally {
       setBusy(false)
     }
@@ -220,6 +222,7 @@ export function ScreeningTab({ p, save }: { p: ReviewProject; save: Save }) {
                   (!counts.noAi ? (counts.undecided ? 'Every undecided record already has an AI suggestion — filter “AI says include/exclude” below.' : 'All records are decided.') : '')}
           </span>
         </div>
+        <TaskModel llm={llm} className="mt-2" />
         {error && <p className="mt-2 whitespace-pre-line text-sm text-red-700">{error}</p>}
         {dual && <p className="mt-2 text-xs text-stone-500">With two reviewers, AI suggestions stay hidden on a record until the active reviewer has decided it, so they cannot influence the independent decision.</p>}
       </Card>
@@ -399,7 +402,7 @@ function ResolveBar({ r, names, onResolve }: { r: ReviewRecord; names: [string, 
 
 export function FullTextTab({ p, save }: { p: ReviewProject; save: Save }) {
   const list = p.records.filter((r) => r.ta === 'include')
-  const llm = useLLM()
+  const llm = useLLM('eligibility')
   const [custom, setCustom] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState('')
   const [errors, setErrors] = useState<string[]>([])
@@ -429,7 +432,7 @@ export function FullTextTab({ p, save }: { p: ReviewProject; save: Save }) {
         const text = await fullTextOf(r)
         if (!text && !r.meta.abstract) throw new Error('no abstract or PDF text — attach the PDF in the Library')
         const source = text ? ({ kind: 'fulltext', text } as const) : ({ kind: 'abstract' } as const)
-        const reply = await llm.run(buildSystemPrompt('literature', ''), eligibilityRequest(p.protocol, r, source, FT_REASONS), { feature: 'Review: full-text eligibility' })
+        const reply = await llm.run(buildTaskPrompt(), eligibilityRequest(p.protocol, r, source, FT_REASONS), { feature: 'Review: full-text eligibility', light: true })
         const a = parseEligibility(reply.text)
         const ftAi = { ...a, source: source.kind, at: Date.now() }
         await save((cur) => ({
@@ -438,7 +441,7 @@ export function FullTextTab({ p, save }: { p: ReviewProject; save: Save }) {
           ),
         }))
       } catch (e) {
-        setErrors((x) => [...x, `${r.meta.title.slice(0, 60)}: ${(e as Error).message}`])
+        setErrors((x) => [...x, `${r.meta.title.slice(0, 60)}: ${explainError(e)}`])
       }
     }
     setBusy('')
@@ -463,6 +466,7 @@ export function FullTextTab({ p, save }: { p: ReviewProject; save: Save }) {
               </Button>
             )}
             <span className="text-xs text-stone-500">{busy || `${llm.missing || llm.label} · uses the PDF when it is in the Library, otherwise the abstract`}</span>
+            <TaskModel llm={llm} className="w-full" />
           </div>
         )}
         {unchecked > 0 && (

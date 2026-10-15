@@ -2,9 +2,11 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { explainError } from '../../ai/errors'
 import { buildSystemPrompt, journalsByTopic, type JournalId } from '../../ai/prompts'
 import { useLLM } from '../../ai/useLLM'
 import { KeywordBank } from '../../components/KeywordBank'
+import { TaskModel } from '../../components/TaskModel'
 import { Badge, Button, Card, Input, Label, Select } from '../../components/ui'
 import { lookupDoi } from '../../literature/library'
 import { prismaCounts } from '../../review/prisma'
@@ -124,7 +126,7 @@ function ListEditor({ label, items, onChange, placeholder, prefix }: { label: st
 }
 
 function ProtocolTab({ p, save }: { p: ReviewProject; save: Save }) {
-  const llm = useLLM()
+  const llm = useLLM('protocol')
   const m = methodById(p.method)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -141,7 +143,7 @@ function ProtocolTab({ p, save }: { p: ReviewProject; save: Save }) {
       await save((cur) => ({ protocol: parseProtocol(text, { ...cur.protocol, topic }) }))
       setVersion((v) => v + 1)
     } catch (e) {
-      setError((e as Error).message)
+      setError(explainError(e))
     } finally {
       setBusy(false)
     }
@@ -176,6 +178,7 @@ function ProtocolTab({ p, save }: { p: ReviewProject; save: Save }) {
           </Button>
           <span className="text-xs text-stone-500">{llm.missing || `${llm.label} · you can edit everything below`}</span>
         </div>
+        <TaskModel llm={llm} className="mt-2" />
         {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
       </Card>
 
@@ -264,7 +267,7 @@ function SearchTab({ p, save }: { p: ReviewProject; save: Save }) {
       await save(out)
       setProgress(`Done: ${out.records.length} unique records.`)
     } catch (e) {
-      setError((e as Error).message)
+      setError(explainError(e))
     } finally {
       setBusy(false)
     }

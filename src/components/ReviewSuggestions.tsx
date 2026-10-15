@@ -1,6 +1,7 @@
 import { Gauge } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { explainError } from '../ai/errors'
 import { countWorks } from '../literature/openalex'
 import { buildQuery, KEYWORD_BLOCKS, REVIEW_SUGGESTIONS, type ReviewSuggestion } from '../review/keywords'
 import { REVIEW_METHODS } from '../review/methods'
@@ -44,7 +45,7 @@ export function ReviewSuggestions() {
       const [primary, reviews] = await Promise.all([countWorks(q, { fromYear: SINCE, apiKey: secrets.openalexKey }), countWorks(q, { reviewsOnly: true, apiKey: secrets.openalexKey })])
       setChecked((c) => ({ ...c, [s.id]: { primary, reviews } }))
     } catch (e) {
-      setError((e as Error).message)
+      setError(explainError(e))
     } finally {
       setBusy(null)
     }

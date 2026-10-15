@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react'
-import { PROVIDERS } from '../ai/providers'
-import type { ModelInfo, ProviderId } from '../ai/types'
-import { loadModelCache, saveModelCache } from '../store/settings'
+import { useState } from 'react'
+import type { ProviderId } from '../ai/types'
+import { useModelList } from './useModelList'
 import { Button, Input, Select } from './ui'
 
 const CUSTOM = '__custom__'
@@ -18,39 +17,14 @@ export function ModelPicker({
   value: string
   onChange: (id: string) => void
 }) {
-  const [models, setModels] = useState<ModelInfo[]>(() => loadModelCache()[provider] ?? [])
-  const [cachedFor, setCachedFor] = useState(provider)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
+  const { models, busy, error, refresh } = useModelList(provider, apiKey)
   const [custom, setCustom] = useState(false)
+  const [customFor, setCustomFor] = useState(provider)
 
-  if (cachedFor !== provider) {
-    setCachedFor(provider)
-    setModels(loadModelCache()[provider] ?? [])
-    setError('')
+  if (customFor !== provider) {
+    setCustomFor(provider)
     setCustom(false)
   }
-
-  async function refresh() {
-    if (!apiKey) return setError('Add an API key first.')
-    setBusy(true)
-    setError('')
-    try {
-      const list = await PROVIDERS[provider].listModels(apiKey)
-      setModels(list)
-      saveModelCache(provider, list)
-    } catch (e) {
-      setError((e as Error).message)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  // Load the list the first time a key is available for this provider.
-  useEffect(() => {
-    if (apiKey && !(loadModelCache()[provider] ?? []).length) void refresh()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [provider, apiKey])
 
   const known = models.some((m) => m.id === value)
   const showInput = custom || (!!value && !known && models.length === 0)

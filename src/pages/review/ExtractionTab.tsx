@@ -68,11 +68,12 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
     setBusy('')
   }
 
-  async function appraise() {
+  /** Appraises the unscored studies, or `list` (whose earlier scores are replaced). */
+  async function appraise(list?: Paper[]) {
     if (!papers) return
     stop.current = false
     setErrors([])
-    const todo = papers.filter((x) => !Object.keys(p.quality[x.id] ?? {}).length)
+    const todo = list ?? papers.filter((x) => !Object.keys(p.quality[x.id] ?? {}).length)
     for (const [i, paper] of todo.entries()) {
       if (stop.current) break
       setBusy(`Appraising ${i + 1}/${todo.length}: ${shortCite(paper)}`)
@@ -112,6 +113,12 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
       return { quality, qualityAi }
     })
   }
+  const noPdf = papers?.filter((x) => !x.pdfPages).length ?? 0
+  // Appraised from the abstract while a PDF is now in the Library: can be redone from the full text.
+  const upgradable = papers?.filter((x) => x.pdfPages && p.qualityAi?.[x.id]?.source === 'abstract') ?? []
+  const reappraise = () =>
+    window.confirm(`Appraise ${upgradable.length} ${upgradable.length === 1 ? 'study' : 'studies'} again from the full text? Their abstract-based scores, including any you checked or changed, are replaced.`) &&
+    appraise(upgradable)
   const unscored = papers?.filter((x) => !Object.keys(p.quality[x.id] ?? {}).length).length ?? 0
   const unchecked = papers?.filter((x) => p.qualityAi?.[x.id] && !p.qualityAi[x.id].checked).length ?? 0
   const extracted = papers?.filter((x) => x.matrix).length ?? 0
@@ -189,13 +196,30 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
                 Stop
               </Button>
             ) : (
-              <Button variant="ghost" disabled={!llmQ.ready || !unscored} onClick={appraise}>
-                Appraise {unscored} with AI
-              </Button>
+              <>
+                <Button variant="ghost" disabled={!llmQ.ready || !unscored} onClick={() => appraise()}>
+                  Appraise {unscored} with AI
+                </Button>
+                {upgradable.length > 0 && (
+                  <Button variant="ghost" disabled={!llmQ.ready} onClick={reappraise}>
+                    <RotateCcw className="h-4 w-4" /> Re-appraise {upgradable.length} from full text
+                  </Button>
+                )}
+              </>
             )}
             <span className="text-xs text-stone-500">{busy || `${llmQ.missing || llmQ.label} · AI proposes each score with a reason; you check or change it`}</span>
           </div>
           <TaskModel llm={llmQ} className="mb-2" />
+          {noPdf > 0 && (
+            <p className="mb-2 text-xs text-amber-800 dark:text-amber-400">
+              {noPdf === papers.length ? 'None of the included studies has a PDF in the Library' : `${noPdf} of ${papers.length} included studies have no PDF in the Library`}, so the AI can only
+              read the abstract, which rarely reports enough to judge methodological quality.{' '}
+              <Link to="/literature?tab=library" className="font-medium hover:underline">
+                Attach the PDFs in the Library →
+              </Link>{' '}
+              then press <b>Re-appraise from full text</b>.
+            </p>
+          )}
           {errors.length > 0 && <pre className="mb-2 text-xs whitespace-pre-wrap text-red-700">{errors.join('\n')}</pre>}
           <p className="mb-2 text-xs text-stone-500">
             0 = not met · 1 = partly · 2 = fully met. Scores weight the synthesis; they do not exclude studies.
@@ -226,7 +250,7 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
                         {shortCite(x)}
                         {ai && (
                           <span className="block font-normal text-stone-400">
-                            AI · {ai.source}
+                            AI · {ai.source === 'abstract' ? <span className="text-amber-700 dark:text-amber-400">abstract only</span> : 'full text'}
                             {ai.checked ? (
                               ' · checked'
                             ) : (

@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { Logo, LogoMark } from './components/Logo'
 import { UnlockPanel } from './components/UnlockPanel'
+import { UpdateBanner } from './components/UpdateBanner'
 import { loadAppLock } from './store/appLock'
 import { SyncAgent } from './components/SyncCard'
 import { NAV, SETTINGS, titleFor } from './nav'
@@ -41,6 +42,7 @@ export default function App() {
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:shadow">
         Skip to content
       </a>
+      <UpdateBanner />
       <Header />
       <SyncAgent />
       <main id="main" className="flex-1">

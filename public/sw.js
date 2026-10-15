@@ -46,7 +46,8 @@ self.addEventListener('fetch', (event) => {
 
   if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(req)
+      // no-store: skip the browser's HTTP cache (GitHub Pages allows 10 minutes), so a reload always gets the latest deploy.
+      fetch(req.url, { cache: 'no-store', credentials: 'same-origin' })
         .then((res) => {
           const copy = res.clone()
           caches.open(CACHE).then((c) => c.put('./index.html', copy))

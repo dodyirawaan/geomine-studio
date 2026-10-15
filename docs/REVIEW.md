@@ -142,6 +142,13 @@ Yang membuat screening berbantuan tool tetap sah: (1) tool dan versinya disebut,
 Buka setiap laporan yang lolos (tautan DOI / *open access*), pastikan memenuhi semua kriteria, lalu tandai
 **Eligible** atau **Exclude because…** dengan alasan. Alasan eksklusi muncul di diagram PRISMA.
 
+**Assess with AI** menilai setiap laporan terhadap kriteria inklusi/eksklusi — dari PDF bila laporan sudah ada di
+Library dengan PDF terlampir (dicocokkan lewat DOI), kalau tidak dari abstrak. Keputusan AI langsung diterapkan
+(*unclear* dibiarkan untuk Anda) dan **Note by AI** muncul di bawah tiap laporan: sumber (full text / abstract only),
+keputusan, dan alasan. Baca catatannya, ubah keputusan bila tidak setuju (otomatis tercatat *checked*), atau tekan
+**Checked**. Methods menyebut penilaian AI ini; selama ada yang belum dicek muncul `[DATA NEEDED]` dan readiness
+check belum lolos.
+
 ### Citation searching (snowballing)
 
 Setelah ada studi yang lolos full text, buka kembali **Search → Citation searching (snowballing)**:
@@ -162,7 +169,11 @@ Setelah ada studi yang lolos full text, buka kembali **Search → Citation searc
 2. Lampirkan PDF di Library bila ada (ekstraksi dari full text lebih lengkap daripada dari abstrak).
 3. **Extract with AI** — mengisi tabel: lokasi/kedalaman, batuan & sifatnya, masalah, metode, data, temuan utama,
    keterbatasan. Nilai yang tidak ada di teks ditulis *"not reported"*. **Cek setiap baris dengan paper aslinya.**
-4. (Systematic) **Quality appraisal**: beri skor 0/1/2 untuk lima kriteria per studi.
+4. (Systematic) **Quality appraisal**: beri skor 0/1/2 untuk lima kriteria per studi — isi sendiri, atau tekan
+   **Appraise with AI** agar AI mengusulkan skor beserta alasan satu kalimat per kriteria (dari full text bila PDF
+   terlampir, kalau tidak dari abstrak). Baca alasannya, ubah skor yang tidak sesuai (otomatis tercatat *checked*),
+   atau tekan **Checked**. Bagian Methods menyebut bahwa skor diusulkan AI dan diperiksa reviewer; selama masih ada
+   yang belum dicek, muncul placeholder `[DATA NEEDED]` dan readiness check belum lolos.
 
 ## 9. Langkah 6 — Analysis
 

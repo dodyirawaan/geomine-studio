@@ -81,6 +81,24 @@ function screeningByText(p: ReviewProject, aiUsed: boolean): string {
   return `${who} Agreement was ${kappaLabel(a.kappa)} [@landis1977] (${k}) [@cohen1960]. ${a.conflicts + a.resolved} disagreement${a.conflicts + a.resolved === 1 ? ' was' : 's were'} resolved by discussion${ai ? ' and the reviewer’s judgement' : ' or by a third reviewer'}.${a.conflicts ? ` [DATA NEEDED: ${a.conflicts} disagreements still unresolved]` : ''}`
 }
 
+function fullTextByText(p: ReviewProject): string {
+  const ai = p.records.filter((r) => r.ta === 'include' && r.ftAi)
+  if (!ai.length) return ''
+  const fulltext = ai.filter((r) => r.ftAi!.source === 'fulltext').length
+  const unchecked = ai.filter((r) => !r.ftAi!.checked).length
+  const from = fulltext === ai.length ? 'the full text' : fulltext ? 'the full text (or the abstract where no full text was available)' : 'the abstract'
+  return ` For ${ai.length} reports, a large language model ([VERIFY: model name and version]) first assessed eligibility against each criterion from ${from} and gave a written justification; the reviewer checked every assessment against the report and made the final decision.${unchecked ? ` [DATA NEEDED: ${unchecked} AI full-text assessments not yet checked]` : ''}`
+}
+
+function qualityByText(p: ReviewProject): string {
+  const ai = Object.entries(p.qualityAi ?? {}).filter(([id]) => p.quality[id])
+  if (!ai.length) return ''
+  const fulltext = ai.filter(([, a]) => a.source === 'fulltext').length
+  const unchecked = ai.filter(([, a]) => !a.checked).length
+  const from = fulltext === ai.length ? 'the full text' : fulltext ? 'the full text (or the abstract where no full text was available)' : 'the title and abstract'
+  return ` For ${ai.length === Object.keys(p.quality).length ? 'every study' : `${ai.length} studies`}, a large language model ([VERIFY: model name and version]) proposed a score for each criterion from ${from}, with a one-sentence justification; the reviewer checked every proposed score against the report and corrected it where needed.${unchecked ? ` [DATA NEEDED: ${unchecked} AI-proposed appraisals not yet checked]` : ''}`
+}
+
 export function methodsText(p: ReviewProject, m: ReviewMethod, c: PrismaCounts): string {
   const pr = p.protocol
   const date = p.searches.length ? fmtDate(Math.max(...p.searches.map((s) => s.at))) : '[DATA NEEDED: search date]'
@@ -112,7 +130,7 @@ export function methodsText(p: ReviewProject, m: ReviewMethod, c: PrismaCounts):
         screeningByText(p, aiUsed)
       }${screeningAidsText(p)}${
         m.fullText
-          ? ` The full texts of ${c.soughtFT} reports were assessed for eligibility and ${c.excludedFT} were excluded${c.ftReasons.length ? ` (${c.ftReasons.map(([r, n]) => `${r}: ${n}`).join('; ')})` : ''}.`
+          ? ` The full texts of ${c.soughtFT} reports were assessed for eligibility and ${c.excludedFT} were excluded${c.ftReasons.length ? ` (${c.ftReasons.map(([r, n]) => `${r}: ${n}`).join('; ')})` : ''}.${fullTextByText(p)}`
           : ''
       } In total, ${c.included} studies were included. The selection process is summarised in the ${m.id === 'scoping' ? 'PRISMA-ScR' : 'PRISMA'} flow diagram (Fig. [X]).`,
     )
@@ -124,7 +142,7 @@ export function methodsText(p: ReviewProject, m: ReviewMethod, c: PrismaCounts):
   }
   if (m.quality) {
     parts.push(
-      `## Quality appraisal\n\nThe quality of each study was appraised against ${QUALITY_CRITERIA.length} criteria — ${QUALITY_CRITERIA.map((q) => q.label.toLowerCase()).join('; ')} — each scored 0 (not met), 1 (partly met) or 2 (fully met), giving a total of 0–${QUALITY_CRITERIA.length * 2}. Scores informed the weight given to each study in the synthesis rather than excluding studies.`,
+      `## Quality appraisal\n\nThe quality of each study was appraised against ${QUALITY_CRITERIA.length} criteria — ${QUALITY_CRITERIA.map((q) => q.label.toLowerCase()).join('; ')} — each scored 0 (not met), 1 (partly met) or 2 (fully met), giving a total of 0–${QUALITY_CRITERIA.length * 2}. Scores informed the weight given to each study in the synthesis rather than excluding studies.${qualityByText(p)}`,
     )
   }
   parts.push(

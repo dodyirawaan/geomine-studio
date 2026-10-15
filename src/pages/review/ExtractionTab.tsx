@@ -9,9 +9,9 @@ import { syncIncludedToLibrary } from '../../review/build'
 import { QUALITY_CRITERIA } from '../../review/methods'
 import { includedRecords } from '../../review/prisma'
 import type { Save } from '../../review/project'
-import { methodById } from '../../review/prompts'
+import { methodById, parseQuality, qualityRequest } from '../../review/prompts'
 import type { ReviewProject } from '../../review/types'
-import { db } from '../../store/db'
+import { db, type Paper } from '../../store/db'
 import { useIncludedPapers } from './usePapers'
 
 export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
@@ -31,6 +31,15 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
     setBusy('')
   }
 
+  async function sourceOf(paper: Paper): Promise<Parameters<typeof matrixRequest>[1]> {
+    if (paper.pdfPages) {
+      const chunks = await db.chunks.where('paperId').equals(paper.id).sortBy('id')
+      return { kind: 'fulltext', text: chunks.map((c) => c.text).join('\n') }
+    }
+    if (!paper.abstract) throw new Error('no abstract or PDF text — attach the PDF in the Library')
+    return { kind: 'abstract' }
+  }
+
   async function extract() {
     if (!papers) return
     stop.current = false
@@ -40,11 +49,7 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
       if (stop.current) break
       setBusy(`Extracting ${i + 1}/${todo.length}: ${shortCite(paper)}`)
       try {
-        let source: Parameters<typeof matrixRequest>[1] = { kind: 'abstract' }
-        if (paper.pdfPages) {
-          const chunks = await db.chunks.where('paperId').equals(paper.id).sortBy('id')
-          source = { kind: 'fulltext', text: chunks.map((c) => c.text).join('\n') }
-        } else if (!paper.abstract) throw new Error('no abstract or PDF text — attach the PDF in the Library')
+        const source = await sourceOf(paper)
         const { text } = await llm.run(buildSystemPrompt('literature', ''), matrixRequest(paper, source, p.protocol.questions.join(' ')), { feature: 'Review: extraction' })
         await db.papers.update(paper.id, { matrix: parseMatrixReply(text), matrixSource: source.kind, updatedAt: Date.now() })
       } catch (e) {
@@ -54,7 +59,38 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
     setBusy('')
   }
 
-  const score = (paperId: string, crit: string, v: number) => save((cur) => ({ quality: { ...cur.quality, [paperId]: { ...cur.quality[paperId], [crit]: v } } }))
+  async function appraise() {
+    if (!papers) return
+    stop.current = false
+    setErrors([])
+    const todo = papers.filter((x) => !Object.keys(p.quality[x.id] ?? {}).length)
+    for (const [i, paper] of todo.entries()) {
+      if (stop.current) break
+      setBusy(`Appraising ${i + 1}/${todo.length}: ${shortCite(paper)}`)
+      try {
+        const source = await sourceOf(paper)
+        const { text } = await llm.run(buildSystemPrompt('literature', ''), qualityRequest(paper, source), { feature: 'Review: quality appraisal' })
+        const { scores, reasons } = parseQuality(text)
+        await save((cur) => ({
+          quality: { ...cur.quality, [paper.id]: scores },
+          qualityAi: { ...cur.qualityAi, [paper.id]: { reasons, source: source.kind, at: Date.now() } },
+        }))
+      } catch (e) {
+        setErrors((x) => [...x, `${shortCite(paper)}: ${(e as Error).message}`])
+      }
+    }
+    setBusy('')
+  }
+
+  const markChecked = (paperId: string) =>
+    save((cur) => (cur.qualityAi?.[paperId] ? { qualityAi: { ...cur.qualityAi, [paperId]: { ...cur.qualityAi[paperId], checked: true } } } : {}))
+  const score = (paperId: string, crit: string, v: number) =>
+    save((cur) => ({
+      quality: { ...cur.quality, [paperId]: { ...cur.quality[paperId], [crit]: v } },
+      ...(cur.qualityAi?.[paperId] ? { qualityAi: { ...cur.qualityAi, [paperId]: { ...cur.qualityAi[paperId], checked: true } } } : {}),
+    }))
+  const unscored = papers?.filter((x) => !Object.keys(p.quality[x.id] ?? {}).length).length ?? 0
+  const unchecked = papers?.filter((x) => p.qualityAi?.[x.id] && !p.qualityAi[x.id].checked).length ?? 0
   const extracted = papers?.filter((x) => x.matrix).length ?? 0
 
   return (
@@ -123,7 +159,23 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
 
       {m.quality && papers && papers.length > 0 && (
         <Card title="Quality appraisal">
-          <p className="mb-2 text-xs text-stone-500">0 = not met · 1 = partly · 2 = fully met. Scores weight the synthesis; they do not exclude studies.</p>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            {busy ? (
+              <Button variant="danger" onClick={() => (stop.current = true)}>
+                Stop
+              </Button>
+            ) : (
+              <Button variant="ghost" disabled={!llm.ready || !unscored} onClick={appraise}>
+                Appraise {unscored} with AI
+              </Button>
+            )}
+            <span className="text-xs text-stone-500">{busy || `${llm.missing || llm.label} · AI proposes each score with a reason; you check or change it`}</span>
+          </div>
+          {errors.length > 0 && <pre className="mb-2 text-xs whitespace-pre-wrap text-red-700">{errors.join('\n')}</pre>}
+          <p className="mb-2 text-xs text-stone-500">
+            0 = not met · 1 = partly · 2 = fully met. Scores weight the synthesis; they do not exclude studies.
+            {unchecked > 0 && ` ${unchecked} AI-scored ${unchecked === 1 ? 'study is' : 'studies are'} not checked yet — read the reasons, change any score you disagree with, or press Checked.`}
+          </p>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-left text-xs">
               <thead className="text-stone-500">
@@ -140,12 +192,27 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
               <tbody>
                 {papers.map((x) => {
                   const s = p.quality[x.id] ?? {}
+                  const ai = p.qualityAi?.[x.id]
                   const total = QUALITY_CRITERIA.reduce((n, q) => n + (s[q.id] ?? 0), 0)
                   return (
-                    <tr key={x.id} className="border-t border-stone-200 dark:border-stone-800">
-                      <td className="py-1 pr-2 font-medium whitespace-nowrap">{shortCite(x)}</td>
+                    <tr key={x.id} className="border-t border-stone-200 align-top dark:border-stone-800">
+                      <td className="py-1 pr-2 font-medium whitespace-nowrap">
+                        {shortCite(x)}
+                        {ai && (
+                          <span className="block font-normal text-stone-400">
+                            AI · {ai.source}
+                            {ai.checked ? (
+                              ' · checked'
+                            ) : (
+                              <button className="ml-1 text-amber-800 hover:underline dark:text-amber-400" onClick={() => markChecked(x.id)}>
+                                Checked
+                              </button>
+                            )}
+                          </span>
+                        )}
+                      </td>
                       {QUALITY_CRITERIA.map((q) => (
-                        <td key={q.id} className="py-1 pr-2">
+                        <td key={q.id} className="py-1 pr-2" title={ai?.reasons[q.id] || undefined}>
                           <Select value={s[q.id] == null ? '' : String(s[q.id])} onChange={(e) => score(x.id, q.id, Number(e.target.value))} className="min-h-7 w-16 px-1.5 py-0.5 text-xs">
                             <option value="" disabled>
                               –
@@ -154,6 +221,7 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
                             <option value="1">1</option>
                             <option value="2">2</option>
                           </Select>
+                          {ai?.reasons[q.id] && <span className="mt-0.5 block max-w-48 text-[11px] leading-snug text-stone-500">{ai.reasons[q.id]}</span>}
                         </td>
                       ))}
                       <td className="py-1 font-semibold tabular-nums">

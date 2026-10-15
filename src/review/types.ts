@@ -34,6 +34,8 @@ export interface ReviewRecord {
   /** Full-text eligibility (only for records included at title/abstract). */
   ft?: 'include' | 'exclude'
   ftReason?: string
+  /** AI assessment of full-text eligibility; its decision is applied but shown as a note until a reviewer checks it. */
+  ftAi?: { decision: 'include' | 'exclude' | 'unclear'; reason: string; note: string; source: 'abstract' | 'fulltext'; at: number; checked?: boolean }
   /** AI suggestion for title/abstract screening, never applied without the user. */
   ai?: { decision: Decision; reason: string }
   /** Library paper created when the record is finally included. */
@@ -111,6 +113,8 @@ export interface ReviewProject {
   snowballs?: SnowballRun[]
   /** Quality appraisal per included record id: criterion id → score 0/1/2. */
   quality: Record<string, Record<string, number>>
+  /** Studies whose quality scores were proposed by AI, by record id. */
+  qualityAi?: Record<string, QualityAi>
   /** Drafted sections by outline id (plus abstract, highlights, keywords). */
   drafts: Record<string, string>
   /** Citation style for the manuscript; defaults to the journal's. */
@@ -118,6 +122,15 @@ export interface ReviewProject {
   manuscriptId?: string
   createdAt: number
   updatedAt: number
+}
+
+export interface QualityAi {
+  /** Criterion id → one-sentence justification from the model. */
+  reasons: Record<string, string>
+  source: 'abstract' | 'fulltext'
+  at: number
+  /** A reviewer has checked (or changed) the AI scores. */
+  checked?: boolean
 }
 
 export interface ScreeningAids {

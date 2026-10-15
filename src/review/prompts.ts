@@ -1,7 +1,7 @@
 // AI requests for review projects: protocol drafting, title/abstract screening suggestions, and section writing.
 import { JOURNALS } from '../ai/prompts'
 import type { Paper } from '../store/db'
-import { REVIEW_METHODS, type OutlineItem, type ReviewMethod } from './methods'
+import { QUALITY_CRITERIA, REVIEW_METHODS, type OutlineItem, type ReviewMethod } from './methods'
 import type { PrismaCounts } from './prisma'
 import type { Decision, Protocol, ReviewMethodId, ReviewProject, ReviewRecord } from './types'
 
@@ -83,6 +83,84 @@ export function parseScreening(text: string): Record<string, { decision: Decisio
     out[String(x.id)] = { decision: d, reason: String(x.reason ?? '') }
   }
   return out
+}
+
+// ---------- full-text eligibility ----------
+
+const MAX_ELIGIBILITY_TEXT = 60000
+
+export function eligibilityRequest(p: Protocol, r: ReviewRecord, source: { kind: 'abstract' } | { kind: 'fulltext'; text: string }, reasons: string[]): string {
+  const body =
+    source.kind === 'fulltext'
+      ? `## Full text (extracted from PDF${source.text.length > MAX_ELIGIBILITY_TEXT ? ', truncated' : ''})\n${source.text.slice(0, MAX_ELIGIBILITY_TEXT)}`
+      : `## Abstract (the full text is not available)\n${r.meta.abstract ?? '(no abstract available)'}`
+  return `Assess whether this report is eligible for a literature review at the full-text stage. It already passed title and abstract screening.
+
+## Review questions
+${p.questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
+
+## Inclusion criteria
+${p.inclusion.join('\n')}
+
+## Exclusion criteria
+${p.exclusion.join('\n')}
+
+## Report
+${r.meta.title}
+${r.meta.authors.slice(0, 6).join(', ')}${r.meta.authors.length > 6 ? ' et al.' : ''} (${r.meta.year ?? 'n.d.'}). ${r.meta.venue ?? ''}
+
+${body}
+
+## Output
+Return only a JSON object:
+{"decision": "include" | "exclude" | "unclear", "reason": "for exclude: a short exclusion reason for the PRISMA diagram, preferably one of: ${reasons.join('; ')}; or an exclusion criterion code", "note": "one or two sentences on which criteria the report meets or fails, pointing to what the text reports"}
+Check every inclusion and exclusion criterion. Use "unclear" when the text does not allow a decision${source.kind === 'abstract' ? ' — only the abstract is available, so exclude only when the abstract clearly fails a criterion' : ''}.`
+}
+
+export function parseEligibility(text: string): { decision: 'include' | 'exclude' | 'unclear'; reason: string; note: string } {
+  const x = jsonFrom<{ decision?: string; reason?: unknown; note?: unknown }>(text, '{')
+  const decision = x.decision === 'include' || x.decision === 'exclude' ? x.decision : 'unclear'
+  return { decision, reason: String(x.reason ?? '').trim() || (decision === 'exclude' ? 'Excluded' : ''), note: String(x.note ?? '').trim() }
+}
+
+// ---------- quality appraisal ----------
+
+const MAX_APPRAISAL_TEXT = 60000
+
+export function qualityRequest(paper: Paper, source: { kind: 'abstract' } | { kind: 'fulltext'; text: string }): string {
+  const body =
+    source.kind === 'fulltext'
+      ? `## Full text (extracted from PDF${source.text.length > MAX_APPRAISAL_TEXT ? ', truncated' : ''})\n${source.text.slice(0, MAX_APPRAISAL_TEXT)}`
+      : `## Abstract (no full text available)\n${paper.abstract ?? '(no abstract available)'}`
+  return `Appraise the methodological quality of this study for a systematic review in mining geotechnics.
+
+## Study
+${paper.title}
+${paper.authors.slice(0, 6).join(', ')}${paper.authors.length > 6 ? ' et al.' : ''} (${paper.year ?? 'n.d.'}). ${paper.venue ?? ''}
+
+${body}
+
+## Criteria (score each 0, 1 or 2)
+${QUALITY_CRITERIA.map((q) => `- "${q.id}": ${q.label}. ${q.rubric}`).join('\n')}
+
+## Output
+Return only a JSON object: {"<criterion id>": {"score": 0 | 1 | 2, "reason": "one sentence pointing to what the text does or does not report"}} with one entry per criterion.
+Judge only from the text above. If the text does not report something, score it lower and say so; never assume it was done.${source.kind === 'abstract' ? ' Only the abstract is available, so say "abstract only" in reasons where the full text might report more.' : ''}`
+}
+
+export function parseQuality(text: string): { scores: Record<string, number>; reasons: Record<string, string> } {
+  const raw = jsonFrom<Record<string, { score?: unknown; reason?: unknown } | number>>(text, '{')
+  const scores: Record<string, number> = {}
+  const reasons: Record<string, string> = {}
+  for (const q of QUALITY_CRITERIA) {
+    const v = raw[q.id]
+    const n = Number(typeof v === 'object' && v ? v.score : v)
+    if (![0, 1, 2].includes(n)) continue
+    scores[q.id] = n
+    reasons[q.id] = typeof v === 'object' && v ? String(v.reason ?? '') : ''
+  }
+  if (Object.keys(scores).length < QUALITY_CRITERIA.length) throw new Error('The model did not score every criterion.')
+  return { scores, reasons }
 }
 
 // ---------- writing ----------

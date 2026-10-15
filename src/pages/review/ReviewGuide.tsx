@@ -17,7 +17,7 @@ const STEPS: { title: string; body: string; when?: (m: ReturnType<typeof methodB
   },
   {
     title: 'Full-text eligibility',
-    body: 'Open each included report and confirm it meets all criteria; give a reason for every exclusion (these appear in the PRISMA diagram).',
+    body: 'Open each included report and confirm it meets all criteria; give a reason for every exclusion (these appear in the PRISMA diagram). AI can assess them first — from the PDF when it is in the Library, otherwise the abstract — and leaves a note under each report for you to check.',
     when: (m) => m.fullText,
   },
   {
@@ -26,7 +26,7 @@ const STEPS: { title: string; body: string; when?: (m: ReturnType<typeof methodB
   },
   {
     title: 'Quality appraisal',
-    body: 'Score each study 0–2 on five criteria (aim, data, reproducible methods, validation, uncertainty). Use the scores to weigh evidence in the synthesis.',
+    body: 'Score each study 0–2 on five criteria (aim, data, reproducible methods, validation, uncertainty) — yourself, or let AI propose the scores with a reason each and then check them. Use the scores to weigh evidence in the synthesis.',
     when: (m) => m.quality,
   },
   {

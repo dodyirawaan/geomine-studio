@@ -5,10 +5,11 @@ import { useLLM } from '../../ai/useLLM'
 import { Badge, Button, Card, Input, Select } from '../../components/ui'
 import type { Save } from '../../review/project'
 import { castVote, isConflict, resolveConflict, vote, type Reviewer } from '../../review/dual'
-import { parseScreening, screeningRequest } from '../../review/prompts'
+import { eligibilityRequest, parseEligibility, parseScreening, screeningRequest } from '../../review/prompts'
 import type { Decision, ReviewProject, ReviewRecord } from '../../review/types'
 import { buildFeatures, relevant, scoreRecords } from '../../review/prioritise'
 import { DualCard } from './DualCard'
+import { db } from '../../store/db'
 import { ExchangeCard, PrioritiseCard } from './ScreeningAids'
 
 const PAGE = 25
@@ -398,8 +399,51 @@ function ResolveBar({ r, names, onResolve }: { r: ReviewRecord; names: [string, 
 
 export function FullTextTab({ p, save }: { p: ReviewProject; save: Save }) {
   const list = p.records.filter((r) => r.ta === 'include')
+  const llm = useLLM()
   const [custom, setCustom] = useState<Record<string, string>>({})
-  const set = (id: string, ft: 'include' | 'exclude' | undefined, ftReason = '') => save((cur) => ({ records: cur.records.map((r) => (r.id === id ? { ...r, ft, ftReason } : r)) }))
+  const [busy, setBusy] = useState('')
+  const [errors, setErrors] = useState<string[]>([])
+  const stop = useRef(false)
+  const checked = (r: ReviewRecord) => (r.ftAi ? { ftAi: { ...r.ftAi, checked: true } } : {})
+  const set = (id: string, ft: 'include' | 'exclude' | undefined, ftReason = '') =>
+    save((cur) => ({ records: cur.records.map((r) => (r.id === id ? { ...r, ft, ftReason, ...checked(r) } : r)) }))
+  const markChecked = (id: string) => save((cur) => ({ records: cur.records.map((r) => (r.id === id ? { ...r, ...checked(r) } : r)) }))
+  const todo = list.filter((r) => !r.ft && r.ftAi?.decision !== 'unclear')
+  const unchecked = list.filter((r) => r.ftAi && !r.ftAi.checked).length
+
+  /** The PDF text when the report is already in the library with a PDF attached (by paper id or DOI). */
+  async function fullTextOf(r: ReviewRecord): Promise<string | undefined> {
+    const paper = (r.paperId ? await db.papers.get(r.paperId) : undefined) ?? (r.meta.doi ? await db.papers.where('doi').equals(r.meta.doi).first() : undefined)
+    if (!paper?.pdfPages) return undefined
+    const chunks = await db.chunks.where('paperId').equals(paper.id).sortBy('id')
+    return chunks.map((c) => c.text).join('\n') || undefined
+  }
+
+  async function assess() {
+    stop.current = false
+    setErrors([])
+    for (const [i, r] of todo.entries()) {
+      if (stop.current) break
+      setBusy(`Assessing ${i + 1}/${todo.length}: ${r.meta.title.slice(0, 60)}`)
+      try {
+        const text = await fullTextOf(r)
+        if (!text && !r.meta.abstract) throw new Error('no abstract or PDF text — attach the PDF in the Library')
+        const source = text ? ({ kind: 'fulltext', text } as const) : ({ kind: 'abstract' } as const)
+        const reply = await llm.run(buildSystemPrompt('literature', ''), eligibilityRequest(p.protocol, r, source, FT_REASONS), { feature: 'Review: full-text eligibility' })
+        const a = parseEligibility(reply.text)
+        const ftAi = { ...a, source: source.kind, at: Date.now() }
+        await save((cur) => ({
+          records: cur.records.map((x) =>
+            x.id !== r.id || x.ft ? x : { ...x, ftAi, ...(a.decision === 'unclear' ? {} : { ft: a.decision, ftReason: a.decision === 'exclude' ? a.reason : '' }) },
+          ),
+        }))
+      } catch (e) {
+        setErrors((x) => [...x, `${r.meta.title.slice(0, 60)}: ${(e as Error).message}`])
+      }
+    }
+    setBusy('')
+  }
+
   return (
     <div className="space-y-4">
       <Card title="Full-text eligibility">
@@ -407,6 +451,26 @@ export function FullTextTab({ p, save }: { p: ReviewProject; save: Save }) {
           Open each report (DOI or open-access link) and confirm it meets all criteria. Record a reason for every exclusion — it appears in the PRISMA diagram. Attach PDFs later in the
           Library for full-text extraction.
         </p>
+        {list.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {busy ? (
+              <Button variant="danger" onClick={() => (stop.current = true)}>
+                Stop
+              </Button>
+            ) : (
+              <Button variant="ghost" disabled={!llm.ready || !todo.length} onClick={assess}>
+                <Bot className="h-4 w-4" /> Assess {todo.length} with AI
+              </Button>
+            )}
+            <span className="text-xs text-stone-500">{busy || `${llm.missing || llm.label} · uses the PDF when it is in the Library, otherwise the abstract`}</span>
+          </div>
+        )}
+        {unchecked > 0 && (
+          <p className="mt-2 text-xs text-amber-800 dark:text-amber-400">
+            {unchecked} AI decision{unchecked === 1 ? '' : 's'} not checked yet — read the AI note under each report, change the decision if you disagree, or press Checked.
+          </p>
+        )}
+        {errors.length > 0 && <pre className="mt-2 text-xs whitespace-pre-wrap text-red-700">{errors.join('\n')}</pre>}
       </Card>
       {!list.length ? (
         <p className="text-sm text-stone-500">No records were included at title and abstract screening yet.</p>
@@ -432,6 +496,22 @@ export function FullTextTab({ p, save }: { p: ReviewProject; save: Save }) {
                 )}
               </p>
               {r.ft === 'exclude' && <p className="mt-1 text-xs text-stone-500">Reason: {r.ftReason}</p>}
+              {r.ftAi && (
+                <div className="mt-2 rounded-lg bg-stone-50 px-2.5 py-1.5 text-xs text-stone-600 dark:bg-stone-800/60 dark:text-stone-300">
+                  <Bot className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
+                  <b>Note by AI</b> ({r.ftAi.source === 'fulltext' ? 'full text' : 'abstract only'}) — {r.ftAi.decision === 'unclear' ? 'unclear, decide yourself' : r.ftAi.decision === 'include' ? 'eligible' : `exclude: ${r.ftAi.reason}`}
+                  {r.ftAi.note && <span className="block">{r.ftAi.note}</span>}
+                  <span className="mt-0.5 block text-stone-400">
+                    {r.ftAi.checked ? (
+                      'Checked by reviewer'
+                    ) : (
+                      <button className="text-amber-800 hover:underline dark:text-amber-400" onClick={() => markChecked(r.id)}>
+                        Checked
+                      </button>
+                    )}
+                  </span>
+                </div>
+              )}
               <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                 <Button variant={r.ft === 'include' ? 'primary' : 'ghost'} className="min-h-8 text-xs" onClick={() => set(r.id, 'include')}>
                   <Check className="h-3.5 w-3.5" /> Eligible

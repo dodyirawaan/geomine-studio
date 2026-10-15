@@ -248,9 +248,9 @@ export const REVIEW_REFS: Record<string, string> = {
 
 /** Quality-appraisal criteria for primary studies in mining geotechnics (each scored 0 = no, 1 = partly, 2 = yes). */
 export const QUALITY_CRITERIA = [
-  { id: 'aim', label: 'Clear aim and research question' },
-  { id: 'data', label: 'Data source and site conditions described' },
-  { id: 'method', label: 'Methods reproducible (parameters, standards, models)' },
-  { id: 'validation', label: 'Validation against independent data or field observation' },
-  { id: 'uncertainty', label: 'Uncertainty / limitations addressed' },
+  { id: 'aim', label: 'Clear aim and research question', rubric: '2 = aim or question stated explicitly; 1 = implied but vague; 0 = not identifiable.' },
+  { id: 'data', label: 'Data source and site conditions described', rubric: '2 = site/mine, geology, depth and data source described; 1 = only partly; 0 = not described.' },
+  { id: 'method', label: 'Methods reproducible (parameters, standards, models)', rubric: '2 = parameters, standards, software or model settings given so the work could be repeated; 1 = outline only; 0 = not described.' },
+  { id: 'validation', label: 'Validation against independent data or field observation', rubric: '2 = results checked against independent data, a test set or field observation; 1 = weak or internal checks only; 0 = none.' },
+  { id: 'uncertainty', label: 'Uncertainty / limitations addressed', rubric: '2 = uncertainty quantified or limitations discussed; 1 = mentioned briefly; 0 = not addressed.' },
 ]

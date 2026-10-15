@@ -1,3 +1,4 @@
+import { RotateCcw } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { explainError } from '../../ai/errors'
@@ -201,7 +202,7 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
             {unchecked > 0 && ` ${unchecked} AI-scored ${unchecked === 1 ? 'study is' : 'studies are'} not checked yet — read the reasons, change any score you disagree with, or press Checked.`}
           </p>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-xs">
+            <table className="w-full min-w-[840px] text-left text-xs">
               <thead className="text-stone-500">
                 <tr>
                   <th className="py-1 pr-2">Study</th>
@@ -210,7 +211,8 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
                       {q.label}
                     </th>
                   ))}
-                  <th className="py-1">Total</th>
+                  <th className="py-1 pr-2">Total</th>
+                  <th className="py-1" />
                 </tr>
               </thead>
               <tbody>
@@ -222,11 +224,6 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
                     <tr key={x.id} className="border-t border-stone-200 align-top dark:border-stone-800">
                       <td className="py-1 pr-2 font-medium whitespace-nowrap">
                         {shortCite(x)}
-                        {Object.keys(s).length > 0 && !busy && (
-                          <button className="ml-2 font-normal text-stone-400 hover:text-red-700 hover:underline" title="Clear these scores so the study can be appraised again with AI" onClick={() => resetScores(x)}>
-                            Reset
-                          </button>
-                        )}
                         {ai && (
                           <span className="block font-normal text-stone-400">
                             AI · {ai.source}
@@ -253,8 +250,21 @@ export function ExtractionTab({ p, save }: { p: ReviewProject; save: Save }) {
                           {ai?.reasons[q.id] && <span className="mt-0.5 block max-w-48 text-[11px] leading-snug text-stone-500">{ai.reasons[q.id]}</span>}
                         </td>
                       ))}
-                      <td className="py-1 font-semibold tabular-nums">
+                      <td className="py-1 pr-2 font-semibold tabular-nums">
                         {total}/{QUALITY_CRITERIA.length * 2}
+                      </td>
+                      <td className="py-1">
+                        {Object.keys(s).length > 0 && (
+                          <Button
+                            variant="ghost"
+                            className="min-h-7 px-2 py-0.5 text-xs"
+                            disabled={!!busy}
+                            title="Clear these scores so the study can be appraised again with AI"
+                            onClick={() => resetScores(x)}
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" /> Reset
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   )
